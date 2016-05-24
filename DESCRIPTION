@@ -1,0 +1,28 @@
+Package: fec
+Title: Data about Federal Elections
+Version: 0.0.0.9000
+Authors@R: as.person(c(
+    "Ben Baumer <ben.baumer@gmail.com> [aut, cre]", 
+    "Hadley Wickham <h.wickham@gmail.com> [ctb]"
+  ))
+Description: What the package does (one paragraph).
+Depends:
+    R (>= 3.2.0),
+    etl
+Imports:
+    DBI, 
+    readr
+Suggests:
+    knitr,
+    magrittr,
+    rmarkdown,
+    RSQLite,
+    RPostgreSQL,
+    RMySQL
+URL: http://github.com/beanumber/fec
+BugReports: https://github.com/beanumber/fec/issues
+VignetteBuilder: knitr
+License: CC0
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 5.0.1
