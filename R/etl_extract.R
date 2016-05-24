@@ -54,7 +54,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
 #' @rdname etl_extract.etl_fec
 #' @importFrom DBI dbWriteTable dbListTables
 #' @export
-#' 
+#' @examples 
 #' \dontrun{
 #' if (require(RMySQL)) {
 #'   # must have pre-existing database "fec"

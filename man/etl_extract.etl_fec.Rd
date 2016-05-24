@@ -44,5 +44,20 @@ fec \%>\%
   etl_transform() \%>\%
   etl_load()
 }
+\dontrun{
+if (require(RMySQL)) {
+  # must have pre-existing database "fec"
+  # if not, try
+  system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec;'")
+  db <- src_mysql(default.file = path.expand("~/.my.cnf"), group = "client",
+                  user = NULL, password = NULL, dbname = "fec")
+}
+
+fec <- etl("fec", db, dir = "~/dumps/fec")
+fec \%>\%
+  etl_extract() \%>\%
+  etl_transform() \%>\%
+  etl_load(schema = TRUE)
+}
 }
 
