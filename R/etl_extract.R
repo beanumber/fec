@@ -25,6 +25,14 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   missing <- !file.exists(lcl)
   
   mapply(download.file, src[missing], lcl[missing])
+  
+  # election results
+  src <- "http://www.fec.gov/pubrec/fe2012/federalelections2012.xls"
+  lcl <- paste0(attr(obj, "raw_dir"), "/", basename(src))
+  if (!file.exists(lcl)) {
+    download.file(src, lcl)
+  }
+  
   invisible(obj)
 }
 
@@ -47,6 +55,22 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   
   lcl <- paste0(attr(obj, "load_dir"), "/", names(files), "_2012.csv")
   mapply(readr::write_csv, files, path = lcl, na = "")
+  
+  # election results
+  src <- paste0(attr(obj, "raw_dir"), "/federalelections2012.xls")
+  # readxl::excel_sheets(src) 
+  elections <- readxl::read_excel(src, sheet = 12)
+  names(elections) <- names(elections) %>%
+    tolower() %>%
+    gsub(" ", "_", x = .) %>%
+    gsub("#", "", x = .) %>%
+    gsub("%", "pct", x = .)
+  house_elections <- elections %>%
+    filter(fec_id != "n/a") %>%
+    filter(d != "S") %>%
+    select(-1) %>%
+    rename(district = d, incumbent = `(i)`, general_votes = general_votes_)
+  readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_2012.csv"))
   
   invisible(obj)
 }
@@ -86,7 +110,7 @@ etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
   # write the table directly to the DB
   message("Writing FEC data to the database...")
   lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
-  tablenames <- c("candidates", "committees", "contributions", "individuals")
+  tablenames <- c("candidates", "committees", "contributions", "house_elections", "individuals")
   
   mapply(DBI::dbWriteTable, name = tablenames, value = lcl, 
          MoreArgs = list(conn = obj$con, append = TRUE, ... = ...))

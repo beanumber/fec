@@ -96,25 +96,59 @@ CREATE TABLE `individuals` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 
+DROP TABLE IF EXISTS `house_elections`;
+
+CREATE TABLE `house_elections` (
+  `state_abbreviation` varchar(2) NOT NULL default '',
+  `state` varchar(34) NOT NULL default '',
+  `district` varchar(25) NOT NULL default '',
+  `fec_id` varchar(9) NOT NULL default '',
+  `incumbent` varchar(3) NOT NULL default '',
+  `candidate_name_first` varchar(255) NOT NULL default '',
+  `candidate_name_last` varchar(255) NOT NULL default '',
+  `candidate_name` varchar(255) NOT NULL default '',
+  `total_votes` int NOT NULL default 0,
+  `party` varchar(1) NOT NULL default '',
+  `primary_votes` int NOT NULL default 0,
+  `primary_pct` decimal(10,9) NOT NULL default 0,
+  `runoff_votes` int NOT NULL default 0,
+  `runoff_pct` decimal(10,9) NOT NULL default 0,
+  `general_votes` int NOT NULL default 0,
+  `general_pct` decimal(10,9) NOT NULL default 0,
+  `la_runoff_votes` int NOT NULL default 0,
+  `la_runoff_pct` decimal(10,9) NOT NULL default 0,
+  `ge_runoff_votes` int NOT NULL default 0,
+  `ge_runoff_pct` decimal(10,9) NOT NULL default 0,
+  `ge_winner` varchar(1) NOT NULL default '',
+  `footnotes` varchar(255) NOT NULL default ''
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+
+
 DROP VIEW IF EXISTS `pacs_to_candidates`;
 
 CREATE VIEW `pacs_to_candidates` AS
-  SELECT con.cand_id, can.cand_name, sum(con.transaction_amt) as raised
+  SELECT con.cand_id, can.cand_name
+  , max(CAND_PTY_AFFILIATION) as party
+  , max(CAND_ST) as state, max(CAND_OFFICE_DISTRICT) as district
+  , group_concat(distinct TRANSACTION_PGI) as phase, max(CAND_OFFICE) as office
+  , sum(con.transaction_amt) as total_raised
   , count(distinct con.cmte_id) as num_pacs
   FROM contributions con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id
   GROUP BY con.cand_id
-  ORDER BY raised desc;
+  ORDER BY total_raised desc;
 
 DROP VIEW IF EXISTS `people_to_pacs`;
 
 CREATE VIEW `people_to_pacs` AS
-  SELECT i.cmte_id, c.cmte_name, count(distinct name) as num_donors
-  , sum(i.transaction_amt) as raised
+  SELECT i.cmte_id, c.cmte_name, max(c.cmte_pty_affiliation) as party
+  , count(distinct name) as num_donors
+  , sum(i.transaction_amt) as total_raised
   , sum(i.transaction_amt) / count(distinct name) as avg_donation
   FROM individuals i
   LEFT JOIN committees c ON c.cmte_id = i.cmte_id
   GROUP BY i.cmte_id
-  ORDER BY raised desc;
+  ORDER BY total_raised desc;
 
 
