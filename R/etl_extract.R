@@ -68,7 +68,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
 #' fec %>%
 #'   etl_extract() %>%
 #'   etl_transform() %>%
-#'   etl_load()
+#'   etl_load(schema = TRUE)
 #' }
 etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
   
