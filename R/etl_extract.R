@@ -68,8 +68,19 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   house_elections <- elections %>%
     filter(fec_id != "n/a") %>%
     filter(d != "S") %>%
-    select(-1) %>%
-    rename(district = d, incumbent = `(i)`, general_votes = general_votes_)
+    rename(district = d, incumbent = `(i)`, general_votes = general_votes_) %>%
+    select(state_abbreviation, district, fec_id, incumbent, candidate_name, party, 
+           primary_votes, runoff_votes, general_votes, ge_winner_indicator) %>%
+    mutate(primary_votes = tidyr::extract_numeric(primary_votes)) %>%
+    group_by(fec_id) %>%
+    summarize(state = max(state_abbreviation), district = max(district),
+              incumbent = max(incumbent), name = max(candidate_name), 
+              party = ifelse("R" %in% party, "R", ifelse("D" %in% party, "D", max(party))),
+#               party = paste0(unique(party), collapse = "/"),
+              primary_votes = sum(primary_votes, na.rm = TRUE), 
+              runoff_votes = sum(runoff_votes, na.rm = TRUE),
+              general_votes = sum(general_votes, na.rm = TRUE),
+              ge_winner = max(ge_winner_indicator, na.rm = TRUE))
   readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_2012.csv"))
   
   invisible(obj)
