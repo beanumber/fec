@@ -6,6 +6,7 @@
 #' only flight data from matching months is used.
 #' @export
 #' @import etl
+#' @importFrom utils download.file
 #' @examples 
 #' 
 #' \dontrun{
@@ -24,13 +25,13 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   lcl <- paste0(attr(obj, "raw_dir"), "/", basename(src))
   missing <- !file.exists(lcl)
   
-  mapply(download.file, src[missing], lcl[missing])
+  mapply(utils::download.file, src[missing], lcl[missing])
   
   # election results
   src <- "http://www.fec.gov/pubrec/fe2012/federalelections2012.xls"
   lcl <- paste0(attr(obj, "raw_dir"), "/", basename(src))
   if (!file.exists(lcl)) {
-    download.file(src, lcl)
+    utils::download.file(src, lcl)
   }
   
   invisible(obj)
@@ -38,6 +39,9 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
 
 #' @rdname etl_extract.etl_fec
 #' @importFrom readr read_delim write_csv
+#' @importFrom readxl read_excel
+#' @importFrom tidyr extract_numeric
+#' @import dplyr
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   
@@ -62,25 +66,28 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   elections <- readxl::read_excel(src, sheet = 12)
   names(elections) <- names(elections) %>%
     tolower() %>%
-    gsub(" ", "_", x = .) %>%
-    gsub("#", "", x = .) %>%
-    gsub("%", "pct", x = .)
+    gsub(" ", "_", x = ~.) %>%
+    gsub("#", "", x = ~.) %>%
+    gsub("%", "pct", x = ~.)
   house_elections <- elections %>%
-    filter(fec_id != "n/a") %>%
-    filter(d != "S") %>%
-    rename(district = d, incumbent = `(i)`, general_votes = general_votes_) %>%
-    select(state_abbreviation, district, fec_id, incumbent, candidate_name, party, 
-           primary_votes, runoff_votes, general_votes, ge_winner_indicator) %>%
-    mutate(primary_votes = tidyr::extract_numeric(primary_votes)) %>%
-    group_by(fec_id) %>%
-    summarize(state = max(state_abbreviation), district = max(district),
-              incumbent = max(incumbent), name = max(candidate_name), 
-              party = ifelse("R" %in% party, "R", ifelse("D" %in% party, "D", max(party))),
-#               party = paste0(unique(party), collapse = "/"),
-              primary_votes = sum(primary_votes, na.rm = TRUE), 
-              runoff_votes = sum(runoff_votes, na.rm = TRUE),
-              general_votes = sum(general_votes, na.rm = TRUE),
-              ge_winner = max(ge_winner_indicator, na.rm = TRUE))
+    dplyr::filter_(~fec_id != "n/a") %>%
+    dplyr::filter_(~d != "S") %>%
+    dplyr::rename_(district = ~d, incumbent = ~`(i)`, general_votes = ~general_votes_) %>%
+    dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
+                   ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
+                   ~general_votes, ~ge_winner_indicator) %>%
+    dplyr::mutate(primary_votes = ~tidyr::extract_numeric(primary_votes)) %>%
+    dplyr::group_by_(~fec_id) %>%
+    dplyr::summarize_(state = ~max(state_abbreviation), 
+                      district = ~max(district),
+                      incumbent = ~max(incumbent), 
+                      name = ~max(candidate_name), 
+                      party = ~ifelse("R" %in% party, "R", ifelse("D" %in% party, "D", max(party))),
+                      #               party = paste0(unique(party), collapse = "/"),
+                      primary_votes = ~sum(primary_votes, na.rm = TRUE), 
+                      runoff_votes = ~sum(runoff_votes, na.rm = TRUE),
+                      general_votes = ~sum(general_votes, na.rm = TRUE),
+                      ge_winner = ~max(ge_winner_indicator, na.rm = TRUE))
   readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_2012.csv"))
   
   invisible(obj)
