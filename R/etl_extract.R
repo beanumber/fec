@@ -21,10 +21,10 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   src_files <- c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip")
   src <- paste0(src_root, src_files)
   
-  lcl <- paste0(attr(obj, "raw_dir"), "/", src_files)
+  lcl <- paste0(attr(obj, "raw_dir"), "/", basename(src))
   missing <- !file.exists(lcl)
   
-  mapply(FUN = download.file, src[missing], lcl[missing])
+  mapply(download.file, src[missing], lcl[missing])
   invisible(obj)
 }
 
@@ -35,18 +35,18 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   
   src <- paste0(attr(obj, "raw_dir"), "/", 
                       c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip"))
-  headers <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
+  src_headers <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
                          c("cn_header_file.csv", "cm_header_file.csv", 
                            "pas2_header_file.csv", "indiv_header_file.csv"))
-  individuals <- readr::read_delim(src[4], delim = "|", col_names = names(readr::read_csv(headers[4])))
-  committees <- readr::read_delim(src[2], delim = "|", col_names = names(readr::read_csv(headers[2])))
-  candidates <- readr::read_delim(src[1], delim = "|", col_names = names(readr::read_csv(headers[1])))
-  contributions <- readr::read_delim(src[3], delim = "|", col_names = names(readr::read_csv(headers[3])))
+  headers <- lapply(src_headers, readr::read_csv) %>%
+    lapply(names)
+  files <- mapply(readr::read_delim, file = src, col_names = headers, MoreArgs = list(delim = "|"))
+  names(files) <- c("candidates", "committees", "contributions", "individuals")
   
-  readr::write_csv(individuals, paste0(attr(obj, "load_dir"), "/individuals.csv"))
-  readr::write_csv(committees, paste0(attr(obj, "load_dir"), "/committees.csv"))
-  readr::write_csv(candidates, paste0(attr(obj, "load_dir"), "/candidates.csv"))
-  readr::write_csv(contributions, paste0(attr(obj, "load_dir"), "/contributions.csv"))
+  files <- lapply(files, function(x) { names(x) <- tolower(names(x)); x; })
+  
+  lcl <- paste0(attr(obj, "load_dir"), "/", names(files), "_2012.csv")
+  mapply(readr::write_csv, files, path = lcl, na = "")
   
   invisible(obj)
 }
@@ -54,17 +54,44 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
 #' @rdname etl_extract.etl_fec
 #' @importFrom DBI dbWriteTable dbListTables
 #' @export
+#' 
+#' \dontrun{
+#' if (require(RMySQL)) {
+#'   # must have pre-existing database "fec"
+#'   # if not, try
+#'   system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec;'")
+#'   db <- src_mysql(default.file = path.expand("~/.my.cnf"), group = "client",
+#'                   user = NULL, password = NULL, dbname = "fec")
+#' }
+#' 
+#' fec <- etl("fec", db, dir = "~/dumps/fec")
+#' fec %>%
+#'   etl_extract() %>%
+#'   etl_transform() %>%
+#'   etl_load()
+#' }
 etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
+  
+  if (methods::is(obj$con, "DBIConnection")) {
+    if (schema == TRUE & inherits(obj, "src_mysql")) {
+      schema <- get_schema(obj, schema_name = "init", pkg = "fec")
+    }
+    if (!missing(schema)) {
+      if (file.exists(as.character(schema))) {
+        dbRunScript(obj$con, schema, ...)
+      }
+    }
+  }
+  
   # write the table directly to the DB
   message("Writing FEC data to the database...")
-  DBI::dbWriteTable(obj$con, "contributions", paste0(attr(obj, "load_dir"), "/contributions.csv"), 
-                    overwrite = TRUE, ...)
-  if (DBI::dbWriteTable(obj$con, "candidates", paste0(attr(obj, "load_dir"), "/candidates.csv"), 
-                        overwrite = TRUE, ...)) {
-    message("Data was successfully written to database.")
-    message(DBI::dbListTables(obj$con))
-    invisible(obj)
-  }
+  lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
+  tablenames <- c("candidates", "committees", "contributions", "individuals")
+  
+  mapply(DBI::dbWriteTable, name = tablenames, value = lcl, 
+         MoreArgs = list(conn = obj$con, append = TRUE, ... = ...))
+
+  invisible(obj)
 }
 
 

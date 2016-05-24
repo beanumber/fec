@@ -1,0 +1,120 @@
+USE fec;
+
+DROP TABLE IF EXISTS `candidates`;
+
+CREATE TABLE `candidates` (
+  `cand_id` varchar(9) NOT NULL default '',
+  `cand_name` varchar(200) NOT NULL default '',
+  `cand_pty_affiliation` varchar(3) NOT NULL default '',
+  `cand_election_yr` smallint(4) DEFAULT NULL,
+  `cand_office_st` varchar(2) NOT NULL default '',
+  `cand_office` varchar(1) NOT NULL default '',
+  `cand_office_district` smallint(2) DEFAULT NULL,
+  `cand_ici` varchar(1) NOT NULL default '',
+  `cand_status` varchar(1) NOT NULL default '',
+  `cand_pcc` varchar(9) NOT NULL default '',
+  `cand_st1` varchar(34) NOT NULL default '',
+  `cand_st2` varchar(34) NOT NULL default '',
+  `cand_city` varchar(30) NOT NULL default '',
+  `cand_st` varchar(2) NOT NULL default '',
+  `cand_zip` mediumint(9) DEFAULT NULL,
+  PRIMARY KEY (`cand_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `committees`;
+
+CREATE TABLE `committees` (
+  `cmte_id` varchar(9) NOT NULL default '',
+  `cmte_name` varchar(200) NOT NULL default '',
+  `tres_name` varchar(90) NOT NULL default '',
+  `cmte_st1` varchar(34) NOT NULL default '',
+  `cmte_st2` varchar(34) NOT NULL default '',
+  `cmte_city` varchar(30) NOT NULL default '',
+  `cmte_st` varchar(2) NOT NULL default '',
+  `cmte_zip` mediumint(9) DEFAULT NULL,
+  `cmte_dsgn` varchar(1) NOT NULL default '',
+  `cmte_type` varchar(1) NOT NULL default '',
+  `cmte_pty_affiliation` varchar(3) NOT NULL default '',
+  `cmte_filing_freq` varchar(1) NOT NULL default '',
+  `org_type` varchar(1) NOT NULL default '',
+  `connected_org_name` varchar(200) NOT NULL default '',
+  `cand_id` varchar(9) NOT NULL default '',
+  PRIMARY KEY (`cmte_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `contributions`;
+
+CREATE TABLE `contributions` (
+  `cmte_id` varchar(9) NOT NULL default '',
+  `amndt_ind` varchar(1) NOT NULL default '',
+  `rpt_tp` varchar(3) NOT NULL default '',
+  `transaction_pgi` varchar(5) NOT NULL default '',
+  `image_num` varchar(18) NOT NULL default '',
+  `transaction_tp` varchar(3) NOT NULL default '',
+  `entity_tp` varchar(3) NOT NULL default '',
+  `name` varchar(200) NOT NULL default '',
+  `city` varchar(30) NOT NULL default '',
+  `state` varchar(2) NOT NULL default '',
+  `zip_code` varchar(9) NOT NULL default '',
+  `employer` varchar(38) NOT NULL default '',
+  `occupation` varchar(38) NOT NULL default '',
+  `transaction_dt` varchar(8) NOT NULL default '',
+  `transaction_amt` decimal(14,2) NOT NULL default 0,
+  `other_id` varchar(9) NOT NULL default '',
+  `cand_id` varchar(9) NOT NULL default '',
+  `tran_id` varchar(32) NOT NULL default '',
+  `file_num` int(22) DEFAULT NULL,
+  `memo_cd` varchar(1) NOT NULL default '',
+  `memo_text` varchar(100) NOT NULL default '',
+  `sub_id` double DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+DROP TABLE IF EXISTS `individuals`;
+
+CREATE TABLE `individuals` (
+  `cmte_id` varchar(9) NOT NULL default '',
+  `amndt_ind` varchar(1) NOT NULL default '',
+  `rpt_tp` varchar(3) NOT NULL default '',
+  `transaction_pgi` varchar(5) NOT NULL default '',
+  `image_num` varchar(18) NOT NULL default '',
+  `transaction_tp` varchar(3) NOT NULL default '',
+  `entity_tp` varchar(3) NOT NULL default '',
+  `name` varchar(200) NOT NULL default '',
+  `city` varchar(30) NOT NULL default '',
+  `state` varchar(2) NOT NULL default '',
+  `zip_code` varchar(9) NOT NULL default '',
+  `employer` varchar(38) NOT NULL default '',
+  `occupation` varchar(38) NOT NULL default '',
+  `transaction_dt` varchar(8) NOT NULL default '',
+  `transaction_amt` decimal(14,2) NOT NULL default 0,
+  `other_id` varchar(9) NOT NULL default '',
+  `tran_id` varchar(32) NOT NULL default '',
+  `file_num` int(22) DEFAULT NULL,
+  `memo_cd` varchar(1) NOT NULL default '',
+  `memo_text` varchar(100) NOT NULL default '',
+  `sub_id` double DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+
+DROP VIEW IF EXISTS `pacs_to_candidates`;
+
+CREATE VIEW `pacs_to_candidates` AS
+  SELECT con.cand_id, can.cand_name, sum(con.transaction_amt) as raised
+  , count(distinct con.cmte_id) as num_pacs
+  FROM contributions con
+  LEFT JOIN candidates can ON can.cand_id = con.cand_id
+  GROUP BY con.cand_id
+  ORDER BY raised desc;
+
+DROP VIEW IF EXISTS `people_to_pacs`;
+
+CREATE VIEW `people_to_pacs` AS
+  SELECT i.cmte_id, c.cmte_name, count(distinct name) as num_donors
+  , sum(i.transaction_amt) as raised
+  , sum(i.transaction_amt) / count(distinct name) as avg_donation
+  FROM individuals i
+  LEFT JOIN committees c ON c.cmte_id = i.cmte_id
+  GROUP BY i.cmte_id
+  ORDER BY raised desc;
+
+
