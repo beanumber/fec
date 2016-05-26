@@ -22,18 +22,10 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   src_files <- c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip")
   src <- paste0(src_root, src_files)
   
-  lcl <- paste0(attr(obj, "raw_dir"), "/", basename(src))
-  missing <- !file.exists(lcl)
-  
-  mapply(utils::download.file, src[missing], lcl[missing])
-  
   # election results
-  src <- "http://www.fec.gov/pubrec/fe2012/federalelections2012.xls"
-  lcl <- paste0(attr(obj, "raw_dir"), "/", basename(src))
-  if (!file.exists(lcl)) {
-    utils::download.file(src, lcl)
-  }
-  
+  src <- append(src, "http://www.fec.gov/pubrec/fe2012/federalelections2012.xls")
+
+  smart_download(obj, src)
   invisible(obj)
 }
 
