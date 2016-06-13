@@ -22,7 +22,8 @@ Suggests:
     rmarkdown,
     RSQLite,
     RPostgreSQL,
-    RMySQL
+    RMySQL,
+    testthat
 URL: http://github.com/beanumber/fec
 BugReports: https://github.com/beanumber/fec/issues
 VignetteBuilder: knitr

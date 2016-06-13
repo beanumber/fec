@@ -37,20 +37,10 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   
-  src <- paste0(attr(obj, "raw_dir"), "/", 
-                      c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip"))
-  src_headers <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
-                         c("cn_header_file.csv", "cm_header_file.csv", 
-                           "pas2_header_file.csv", "indiv_header_file.csv"))
-  headers <- lapply(src_headers, readr::read_csv) %>%
-    lapply(names)
-  files <- mapply(readr::read_delim, file = src, col_names = headers, MoreArgs = list(delim = "|"))
-  names(files) <- c("candidates", "committees", "contributions", "individuals")
+  filenames <- c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip")
+  src <- paste0(attr(obj, "raw_dir"), "/", filenames)
   
-  files <- lapply(files, function(x) { names(x) <- tolower(names(x)); x; })
-  
-  lcl <- paste0(attr(obj, "load_dir"), "/", names(files), "_2012.csv")
-  mapply(readr::write_csv, files, path = lcl, na = "")
+  lapply(src, smart_transform, obj = obj)
   
   # election results
   src <- paste0(attr(obj, "raw_dir"), "/federalelections2012.xls")
@@ -58,9 +48,9 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   elections <- readxl::read_excel(src, sheet = 12)
   names(elections) <- names(elections) %>%
     tolower() %>%
-    gsub(" ", "_", x = ~.) %>%
-    gsub("#", "", x = ~.) %>%
-    gsub("%", "pct", x = ~.)
+    gsub(" ", "_", x = .) %>%
+    gsub("#", "", x = .) %>%
+    gsub("%", "pct", x = .)
   house_elections <- elections %>%
     dplyr::filter_(~fec_id != "n/a") %>%
     dplyr::filter_(~d != "S") %>%
@@ -68,7 +58,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
     dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
                    ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
                    ~general_votes, ~ge_winner_indicator) %>%
-    dplyr::mutate(primary_votes = ~tidyr::extract_numeric(primary_votes)) %>%
+    dplyr::mutate_(primary_votes = ~tidyr::extract_numeric(primary_votes)) %>%
     dplyr::group_by_(~fec_id) %>%
     dplyr::summarize_(state = ~max(state_abbreviation), 
                       district = ~max(district),
@@ -81,8 +71,24 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
                       general_votes = ~sum(general_votes, na.rm = TRUE),
                       ge_winner = ~max(ge_winner_indicator, na.rm = TRUE))
   readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_2012.csv"))
-  
   invisible(obj)
+}
+
+smart_transform <- function (obj, filename) {
+  message(paste("Transforming", filename, "..."))
+  src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
+                            gsub("12\\.zip", "_header_file.csv", basename(filename)))
+  
+  header <- readr::read_csv(src_header) %>%
+    names() %>%
+    tolower()
+  
+  data <- readr::read_delim(filename, col_names = header, delim = "|")
+ 
+#  names(files) <- c("candidates", "committees", "contributions", "individuals")
+  
+  lcl <- paste0(attr(obj, "load_dir"), "/", gsub("\\.zip", "\\.csv", basename(filename)))
+  readr::write_delim(data, path = lcl, na = "", delim = "|")
 }
 
 #' @rdname etl_extract.etl_fec
@@ -117,11 +123,11 @@ etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
     }
   }
   
+  lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
+  tablenames <- c("committees", "candidates", "house_elections", "individuals", "contributions")
+  
   # write the table directly to the DB
   message("Writing FEC data to the database...")
-  lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
-  tablenames <- c("candidates", "committees", "contributions", "house_elections", "individuals")
-  
   mapply(DBI::dbWriteTable, name = tablenames, value = lcl, 
          MoreArgs = list(conn = obj$con, append = TRUE, ... = ...))
 
