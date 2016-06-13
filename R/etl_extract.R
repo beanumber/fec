@@ -88,7 +88,7 @@ smart_transform <- function (obj, filename) {
 #  names(files) <- c("candidates", "committees", "contributions", "individuals")
   
   lcl <- paste0(attr(obj, "load_dir"), "/", gsub("\\.zip", "\\.csv", basename(filename)))
-  readr::write_delim(data, path = lcl, na = "", delim = "|")
+  readr::write_csv(data, path = lcl, na = "")
 }
 
 #' @rdname etl_extract.etl_fec
