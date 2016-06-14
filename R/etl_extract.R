@@ -74,6 +74,8 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   invisible(obj)
 }
 
+#' @importFrom readr cols col_character
+
 smart_transform <- function (obj, filename) {
   message(paste("Transforming", filename, "..."))
   src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
@@ -84,7 +86,7 @@ smart_transform <- function (obj, filename) {
     tolower()
   
   # https://github.com/beanumber/fec/issues/3
-  col_types <- cols("transaction_tp" = col_character())
+  col_types <- readr::cols("transaction_tp" = readr::col_character())
   data <- readr::read_delim(filename, col_names = header, 
                             col_types = col_types, delim = "|")
 #  data <- read.delim(filename, col.names = header, sep = "|")
