@@ -83,7 +83,11 @@ smart_transform <- function (obj, filename) {
     names() %>%
     tolower()
   
-  data <- readr::read_delim(filename, col_names = header, delim = "|")
+  # https://github.com/beanumber/fec/issues/3
+  col_types <- cols("transaction_tp" = col_character())
+  data <- readr::read_delim(filename, col_names = header, 
+                            col_types = col_types, delim = "|")
+#  data <- read.delim(filename, col.names = header, sep = "|")
  
 #  names(files) <- c("candidates", "committees", "contributions", "individuals")
   
@@ -113,7 +117,7 @@ smart_transform <- function (obj, filename) {
 etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
   
   if (methods::is(obj$con, "DBIConnection")) {
-    if (schema == TRUE & inherits(obj, "src_mysql")) {
+    if (schema == TRUE & inherits(obj, c("src_mysql", "src_postgres"))) {
       schema <- get_schema(obj, schema_name = "init", pkg = "fec")
     }
     if (!missing(schema)) {
