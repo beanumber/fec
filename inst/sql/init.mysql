@@ -119,7 +119,7 @@ DROP VIEW IF EXISTS `pacs_to_candidates`;
 CREATE VIEW `pacs_to_candidates` AS
   SELECT con.cand_id, can.cand_name, con.transaction_type
   , max(CAND_party_AFFILIATION) as party
-  , max(CAND_ST) as state
+  , max(cand_state) as state
   , max(CAND_OFFICE_DISTRICT) as district
   , group_concat(distinct TRANSACTION_PGI) as phase
   , max(CAND_OFFICE) as office

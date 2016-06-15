@@ -117,7 +117,7 @@ DROP VIEW IF EXISTS pacs_to_candidates CASCADE;
 CREATE VIEW pacs_to_candidates AS
   SELECT con.cand_id, can.cand_name
   , max(CAND_PARTY_AFFILIATION) as party
-  , max(CAND_ST) as state
+  , max(cand_state) as state
   , max(CAND_OFFICE_DISTRICT) as district
   , array_agg(distinct TRANSACTION_PGI) as phase
   , max(CAND_OFFICE) as office

@@ -1,0 +1,37 @@
+---
+title: "Vignette Title"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{psql, eval=FALSE}
+DROP INDEX IF EXISTS individuals_state_idx;
+DROP INDEX IF EXISTS committees_cmte_st_idx;
+
+-- wicked slow, running time forever...
+-- note sequential scans
+EXPLAIN SELECT sum(1) as N FROM committees c
+JOIN individuals i ON c.cmte_st = i.state
+WHERE i.state = 'MA';
+
+-- Build index on big table
+CREATE INDEX ON individuals (state);
+
+-- now it uses the index, running time 
+EXPLAIN SELECT sum(1) as N FROM committees c
+JOIN individuals i ON c.cmte_st = i.state
+WHERE i.state = 'MA';
+
+-- Build index on small table
+CREATE INDEX ON committees (cmte_st);
+
+-- now it uses BOTH indexes, running time 
+EXPLAIN SELECT sum(1) as N FROM committees c
+JOIN individuals i ON c.cmte_st = i.state
+WHERE i.state = 'MA';
+```
