@@ -3,9 +3,9 @@ DROP TABLE IF EXISTS candidates CASCADE;
 CREATE TABLE candidates (
   cand_id varchar(9) NOT NULL default '',
   cand_name varchar(200) NOT NULL default '',
-  cand_pty_affiliation varchar(3) default '',
+  cand_party_affiliation varchar(3) default '',
   cand_election_yr smallint DEFAULT NULL,
-  cand_office_st varchar(2) NOT NULL default '',
+  cand_office_state varchar(2) NOT NULL default '',
   cand_office varchar(1) NOT NULL default '',
   cand_office_district smallint DEFAULT NULL,
   cand_ici varchar(1) NOT NULL default '',
@@ -14,7 +14,7 @@ CREATE TABLE candidates (
   cand_st1 varchar(34) default '',
   cand_st2 varchar(34) default '',
   cand_city varchar(30) default '',
-  cand_st varchar(2) default '',
+  cand_state varchar(2) default '',
   cand_zip integer DEFAULT NULL,
   PRIMARY KEY (cand_id)
 );
@@ -28,11 +28,11 @@ CREATE TABLE committees (
   cmte_st1 varchar(34) default '',
   cmte_st2 varchar(34) default '',
   cmte_city varchar(30) default '',
-  cmte_st varchar(2) default '',
+  cmte_state varchar(2) default '',
   cmte_zip integer DEFAULT NULL,
   cmte_dsgn varchar(1) default '',
   cmte_type varchar(1) NOT NULL default '',
-  cmte_pty_affiliation varchar(3) default '',
+  cmte_party_affiliation varchar(3) default '',
   cmte_filing_freq varchar(1) NOT NULL default '',
   org_type varchar(1) default '',
   connected_org_name varchar(200) default '',
@@ -45,11 +45,11 @@ DROP TABLE IF EXISTS contributions CASCADE;
 CREATE TABLE contributions (
   cmte_id varchar(9) NOT NULL default '',
   amndt_ind varchar(1) NOT NULL default '',
-  rpt_tp varchar(3) NOT NULL default '',
+  rpt_type varchar(3) NOT NULL default '',
   transaction_pgi varchar(5) default '',
   image_num varchar(18) NOT NULL default '',
-  transaction_tp varchar(3) NOT NULL default '',
-  entity_tp varchar(3) default '',
+  transaction_type varchar(3) NOT NULL default '',
+  entity_type varchar(3) default '',
   name varchar(200) default '',
   city varchar(30) default '',
   state varchar(2) default '',
@@ -72,11 +72,11 @@ DROP TABLE IF EXISTS individuals CASCADE;
 CREATE TABLE individuals (
   cmte_id varchar(9) NOT NULL default '',
   amndt_ind varchar(1) NOT NULL default '',
-  rpt_tp varchar(3) NOT NULL default '',
+  rpt_type varchar(3) NOT NULL default '',
   transaction_pgi varchar(5) default '',
   image_num varchar(18) NOT NULL default '',
-  transaction_tp varchar(3) NOT NULL default '',
-  entity_tp varchar(3) default '',
+  transaction_type varchar(3) NOT NULL default '',
+  entity_type varchar(3) default '',
   name varchar(200) default '',
   city varchar(30) default '',
   state varchar(2) default '',
@@ -116,23 +116,27 @@ DROP VIEW IF EXISTS pacs_to_candidates CASCADE;
 
 CREATE VIEW pacs_to_candidates AS
   SELECT con.cand_id, can.cand_name
-  , max(CAND_PTY_AFFILIATION) as party
+  , max(CAND_PARTY_AFFILIATION) as party
   , max(CAND_ST) as state
   , max(CAND_OFFICE_DISTRICT) as district
   , array_agg(distinct TRANSACTION_PGI) as phase
   , max(CAND_OFFICE) as office
-  , sum(con.transaction_amt) as total_raised
+  , sum(CASE WHEN con.transaction_type IN ('24A', '24N') THEN con.transaction_amt ELSE 0 END) as total_against
+  , sum(CASE WHEN con.transaction_type NOT IN ('24A', '24N') THEN con.transaction_amt ELSE 0 END) as total_for
+  , sum(con.transaction_amt) as total_spent
+  , sum(CASE WHEN con.transaction_type IN ('24A', '24N') THEN con.transaction_amt ELSE 0 END) /
+    (sum(con.transaction_amt) + 1) as attack_rate
   , count(distinct con.cmte_id) as num_pacs
   FROM contributions con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id
   GROUP BY con.cand_id, can.cand_name
-  ORDER BY total_raised desc;
+  ORDER BY total_spent desc;
 
 DROP VIEW IF EXISTS people_to_pacs CASCADE;
 
 CREATE VIEW people_to_pacs AS
   SELECT i.cmte_id, c.cmte_name
-  , max(c.cmte_pty_affiliation) as party
+  , max(c.cmte_party_affiliation) as party
   , count(distinct name) as num_donors
   , sum(i.transaction_amt) as total_raised
   , sum(i.transaction_amt) / count(distinct name) as avg_donation

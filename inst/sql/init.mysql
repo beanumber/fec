@@ -5,9 +5,9 @@ DROP TABLE IF EXISTS `candidates`;
 CREATE TABLE `candidates` (
   `cand_id` varchar(9) NOT NULL default '',
   `cand_name` varchar(200) NOT NULL default '',
-  `cand_pty_affiliation` varchar(3) NOT NULL default '',
+  `cand_party_affiliation` varchar(3) NOT NULL default '',
   `cand_election_yr` smallint(4) DEFAULT NULL,
-  `cand_office_st` varchar(2) NOT NULL default '',
+  `cand_office_state` varchar(2) NOT NULL default '',
   `cand_office` varchar(1) NOT NULL default '',
   `cand_office_district` smallint(2) DEFAULT NULL,
   `cand_ici` varchar(1) NOT NULL default '',
@@ -16,7 +16,7 @@ CREATE TABLE `candidates` (
   `cand_st1` varchar(34) NOT NULL default '',
   `cand_st2` varchar(34) NOT NULL default '',
   `cand_city` varchar(30) NOT NULL default '',
-  `cand_st` varchar(2) NOT NULL default '',
+  `cand_state` varchar(2) NOT NULL default '',
   `cand_zip` mediumint(9) DEFAULT NULL,
   PRIMARY KEY (`cand_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
@@ -30,11 +30,11 @@ CREATE TABLE `committees` (
   `cmte_st1` varchar(34) NOT NULL default '',
   `cmte_st2` varchar(34) NOT NULL default '',
   `cmte_city` varchar(30) NOT NULL default '',
-  `cmte_st` varchar(2) NOT NULL default '',
+  `cmte_state` varchar(2) NOT NULL default '',
   `cmte_zip` mediumint(9) DEFAULT NULL,
   `cmte_dsgn` varchar(1) NOT NULL default '',
   `cmte_type` varchar(1) NOT NULL default '',
-  `cmte_pty_affiliation` varchar(3) NOT NULL default '',
+  `cmte_party_affiliation` varchar(3) NOT NULL default '',
   `cmte_filing_freq` varchar(1) NOT NULL default '',
   `org_type` varchar(1) NOT NULL default '',
   `connected_org_name` varchar(200) NOT NULL default '',
@@ -47,11 +47,11 @@ DROP TABLE IF EXISTS `contributions`;
 CREATE TABLE `contributions` (
   `cmte_id` varchar(9) NOT NULL default '',
   `amndt_ind` varchar(1) NOT NULL default '',
-  `rpt_tp` varchar(3) NOT NULL default '',
+  `rpt_type` varchar(3) NOT NULL default '',
   `transaction_pgi` varchar(5) NOT NULL default '',
   `image_num` varchar(18) NOT NULL default '',
-  `transaction_tp` varchar(3) NOT NULL default '',
-  `entity_tp` varchar(3) NOT NULL default '',
+  `transaction_type` varchar(3) NOT NULL default '',
+  `entity_type` varchar(3) NOT NULL default '',
   `name` varchar(200) NOT NULL default '',
   `city` varchar(30) NOT NULL default '',
   `state` varchar(2) NOT NULL default '',
@@ -74,11 +74,11 @@ DROP TABLE IF EXISTS `individuals`;
 CREATE TABLE `individuals` (
   `cmte_id` varchar(9) NOT NULL default '',
   `amndt_ind` varchar(1) NOT NULL default '',
-  `rpt_tp` varchar(3) NOT NULL default '',
+  `rpt_type` varchar(3) NOT NULL default '',
   `transaction_pgi` varchar(5) NOT NULL default '',
   `image_num` varchar(18) NOT NULL default '',
-  `transaction_tp` varchar(3) NOT NULL default '',
-  `entity_tp` varchar(3) NOT NULL default '',
+  `transaction_type` varchar(3) NOT NULL default '',
+  `entity_type` varchar(3) NOT NULL default '',
   `name` varchar(200) NOT NULL default '',
   `city` varchar(30) NOT NULL default '',
   `state` varchar(2) NOT NULL default '',
@@ -117,21 +117,24 @@ CREATE TABLE `house_elections` (
 DROP VIEW IF EXISTS `pacs_to_candidates`;
 
 CREATE VIEW `pacs_to_candidates` AS
-  SELECT con.cand_id, can.cand_name
-  , max(CAND_PTY_AFFILIATION) as party
-  , max(CAND_ST) as state, max(CAND_OFFICE_DISTRICT) as district
-  , group_concat(distinct TRANSACTION_PGI) as phase, max(CAND_OFFICE) as office
+  SELECT con.cand_id, can.cand_name, con.transaction_type
+  , max(CAND_party_AFFILIATION) as party
+  , max(CAND_ST) as state
+  , max(CAND_OFFICE_DISTRICT) as district
+  , group_concat(distinct TRANSACTION_PGI) as phase
+  , max(CAND_OFFICE) as office
   , sum(con.transaction_amt) as total_raised
   , count(distinct con.cmte_id) as num_pacs
   FROM contributions con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id
-  GROUP BY con.cand_id
+  GROUP BY con.cand_id, con.transaction_type
   ORDER BY total_raised desc;
 
 DROP VIEW IF EXISTS `people_to_pacs`;
 
 CREATE VIEW `people_to_pacs` AS
-  SELECT i.cmte_id, c.cmte_name, max(c.cmte_pty_affiliation) as party
+  SELECT i.cmte_id, c.cmte_name
+  , max(c.cmte_party_affiliation) as party
   , count(distinct name) as num_donors
   , sum(i.transaction_amt) as total_raised
   , sum(i.transaction_amt) / count(distinct name) as avg_donation
