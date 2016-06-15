@@ -117,18 +117,23 @@ CREATE TABLE `house_elections` (
 DROP VIEW IF EXISTS `pacs_to_candidates`;
 
 CREATE VIEW `pacs_to_candidates` AS
-  SELECT con.cand_id, can.cand_name, con.transaction_type
+  SELECT con.cand_id, can.cand_name
   , max(CAND_party_AFFILIATION) as party
   , max(cand_state) as state
   , max(CAND_OFFICE_DISTRICT) as district
   , group_concat(distinct TRANSACTION_PGI) as phase
   , max(CAND_OFFICE) as office
-  , sum(con.transaction_amt) as total_raised
+  , sum(if(con.transaction_type IN ('24A', '24N'), con.transaction_amt, 0)) as total_against
+  , sum(if(con.transaction_type NOT IN ('24A', '24N'), con.transaction_amt, 0)) as total_for
+  , sum(con.transaction_amt) as total_spent
+  , sum(if(con.transaction_type IN ('24A', '24N'), con.transaction_amt, 0)) /
+    (sum(con.transaction_amt) + 1) as attack_rate
+  , sum(con.transaction_amt) as total_spent
   , count(distinct con.cmte_id) as num_pacs
   FROM contributions con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id
-  GROUP BY con.cand_id, con.transaction_type
-  ORDER BY total_raised desc;
+  GROUP BY con.cand_id
+  ORDER BY total_spent desc;
 
 DROP VIEW IF EXISTS `people_to_pacs`;
 
