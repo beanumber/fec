@@ -1,5 +1,9 @@
-FEC
-================
+---
+title: "FEC"
+output:
+  github_document:
+    html_preview: true
+---
 
 [![Travis-CI Build Status](https://travis-ci.org/beanumber/fec.svg?branch=master)](https://travis-ci.org/beanumber/fec)
 
