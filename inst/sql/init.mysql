@@ -128,7 +128,6 @@ CREATE VIEW `pacs_to_candidates` AS
   , sum(con.transaction_amt) as total_spent
   , sum(if(con.transaction_type IN ('24A', '24N'), con.transaction_amt, 0)) /
     (sum(con.transaction_amt) + 1) as attack_rate
-  , sum(con.transaction_amt) as total_spent
   , count(distinct con.cmte_id) as num_pacs
   FROM contributions con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id

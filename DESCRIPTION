@@ -1,11 +1,13 @@
 Package: fec
 Title: Data about Federal Elections
-Version: 0.0.0.9004
+Version: 0.0.0.9005
 Authors@R: as.person(c(
-    "Ben Baumer <ben.baumer@gmail.com> [aut, cre]", 
-    "Hadley Wickham <h.wickham@gmail.com> [ctb]"
+    "Ben Baumer <ben.baumer@gmail.com> [aut, cre]"
   ))
-Description: What the package does (one paragraph).
+Description: Campaign finance data from the Federal Election Commission records
+    candidates for federal elections, the committees that spend money on behalf (or against)
+    those candidates, and donations from individuals to those committees. This package
+    performs ETL operations for these data to faciliate reproducible analysis. 
 Depends:
     R (>= 3.2.0),
     etl
