@@ -14,6 +14,7 @@
 #' fec %>%
 #'   etl_extract() %>%
 #'   etl_transform() %>%
+#'   etl_init() %>%
 #'   etl_load()
 #' }
 etl_extract.etl_fec <- function(obj, years = 2012, ...) {
@@ -58,6 +59,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
                    ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
                    ~general_votes, ~ge_winner_indicator) %>%
     dplyr::mutate_(primary_votes = ~tidyr::extract_numeric(primary_votes),
+                   district = ~trimws(district),
                    is_incumbent = ~incumbent == "(I)") %>%
     dplyr::group_by_(~fec_id) %>%
     dplyr::summarize_(state = ~max(state_abbreviation), 
