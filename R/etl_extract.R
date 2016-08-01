@@ -52,19 +52,20 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
     gsub("#", "", x = .) %>%
     gsub("%", "pct", x = .)
   house_elections <- elections %>%
-    dplyr::filter_(~fec_id != "n/a") %>%
-    dplyr::filter_(~d != "S") %>%
+    dplyr::filter_(~fec_id != "n/a", ~d != "S") %>%
     dplyr::rename_(district = ~d, incumbent = ~`(i)`, general_votes = ~general_votes_) %>%
     dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
                    ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
                    ~general_votes, ~ge_winner_indicator) %>%
-    dplyr::mutate_(primary_votes = ~tidyr::extract_numeric(primary_votes)) %>%
+    dplyr::mutate_(primary_votes = ~tidyr::extract_numeric(primary_votes),
+                   is_incumbent = ~incumbent == "(I)") %>%
     dplyr::group_by_(~fec_id) %>%
     dplyr::summarize_(state = ~max(state_abbreviation), 
                       district = ~max(district),
-                      incumbent = ~max(incumbent), 
+                      incumbent = ~sum(is_incumbent, na.rm = TRUE) > 0, 
                       name = ~max(candidate_name), 
-                      party = ~ifelse("R" %in% party, "R", ifelse("D" %in% party, "D", max(party))),
+                      party = ~ifelse("R" %in% party, "R", 
+                                      ifelse("D" %in% party, "D", max(party))),
                       #               party = paste0(unique(party), collapse = "/"),
                       primary_votes = ~sum(primary_votes, na.rm = TRUE), 
                       runoff_votes = ~sum(runoff_votes, na.rm = TRUE),
@@ -106,7 +107,7 @@ smart_transform <- function (obj, filename) {
 #'   # must have pre-existing database "fec"
 #'   # if not, try
 #'   system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec;'")
-#'   db <- src_mysql(default.file = path.expand("~/.my.cnf"), group = "client",
+#'   db <- src_mysql(default.file = path.expand("~/.my.cnf"), groups = "rs-dbi",
 #'                   user = NULL, password = NULL, dbname = "fec")
 #' }
 #' 
@@ -114,20 +115,10 @@ smart_transform <- function (obj, filename) {
 #' fec %>%
 #'   etl_extract() %>%
 #'   etl_transform() %>%
-#'   etl_load(schema = TRUE)
+#'   etl_init() %>%
+#'   etl_load()
 #' }
-etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
-  
-  if (methods::is(obj$con, "DBIConnection")) {
-    if (schema == TRUE & inherits(obj, c("src_mysql", "src_postgres"))) {
-      schema <- get_schema(obj, schema_name = "init", pkg = "fec")
-    }
-    if (!missing(schema)) {
-      if (file.exists(as.character(schema))) {
-        dbRunScript(obj$con, schema, ...)
-      }
-    }
-  }
+etl_load.etl_fec <- function(obj, years = 2012, ...) {
   
   lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
   tablenames <- c("committees", "candidates", "house_elections", "individuals", "contributions")
@@ -139,5 +130,3 @@ etl_load.etl_fec <- function(obj, schema = FALSE, years = 2012, ...) {
 
   invisible(obj)
 }
-
-

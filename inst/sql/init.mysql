@@ -102,7 +102,7 @@ CREATE TABLE `house_elections` (
   `fec_id` varchar(9) NOT NULL default '',
   `state` varchar(2) NOT NULL default '',
   `district` varchar(25) NOT NULL default '',
-  `incumbent` varchar(3) NOT NULL default '',
+  `incumbent` varchar(5) NOT NULL default '',
   `candidate_name` varchar(255) NOT NULL default '',
   `party` varchar(1) NOT NULL default '',
   `primary_votes` int NOT NULL default 0,
