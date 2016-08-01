@@ -12,8 +12,8 @@ test_that("mysql works", {
     if (dir.exists(test_dir)) {
       fec <- etl("fec", db = db, dir = test_dir)
       expect_s3_class(fec, c("etl_fec", "etl", "src_mysql", "src_sql"))
-      fec %>% etl_update()
-      expect_equal(fec %>% tbl("house_elections") %>% collect() %>% nrow(), 2178)
+#      fec %>% etl_update()
+#      expect_equal(fec %>% tbl("house_elections") %>% collect() %>% nrow(), 2178)
     }
   }
 })
