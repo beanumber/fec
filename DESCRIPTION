@@ -1,8 +1,9 @@
 Package: fec
 Title: Data about Federal Elections
-Version: 0.0.0.9007
+Version: 0.0.0.9008
 Authors@R: as.person(c(
-    "Ben Baumer <ben.baumer@gmail.com> [aut, cre]"
+    "Ben Baumer <ben.baumer@gmail.com> [aut, cre]",
+    "Eva Gjekmarkaj <gjekmarkaje@gmail.com> [ctb]"
   ))
 Description: Campaign finance data from the Federal Election Commission records
     candidates for federal elections, the committees that spend money on behalf (or against)

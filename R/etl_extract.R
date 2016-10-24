@@ -45,13 +45,16 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   
-  filenames <- c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip")
+  
+  year_end <- (substr(years,3,4))
+  gen_files <- c("cn", "cm", "pas2", "indiv")
+  filenames <- paste0(gen_files, year_end, ".zip")
   src <- paste0(attr(obj, "raw_dir"), "/", filenames)
   
   lapply(src, smart_transform, obj = obj)
   
   # election results
-  src <- paste0(attr(obj, "raw_dir"), "/federalelections2012.xls")
+  src <- paste0(attr(obj, "raw_dir"), "/federalelections",years,".xls")
   # readxl::excel_sheets(src) 
   elections <- readxl::read_excel(src, sheet = 12)
   names(elections) <- names(elections) %>%
@@ -88,8 +91,8 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
 
 smart_transform <- function (obj, filename) {
   message(paste("Transforming", filename, "..."))
-  src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
-                            gsub("12\\.zip", "_header_file.csv", basename(filename)))
+  src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/",year_end, 
+                            gsub("\\.zip", "_header_file.csv", basename(filename)))
   
   header <- readr::read_csv(src_header) %>%
     names() %>%
