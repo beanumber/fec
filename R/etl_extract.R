@@ -19,12 +19,19 @@
 #' }
 etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   
-  src_root <- "ftp://ftp.fec.gov/FEC/2012/"
-  src_files <- c("cn12.zip", "cm12.zip", "pas212.zip", "indiv12.zip")
+   
+  valid_years <- c(2012, 2014, 2016)
+  src_root <- paste0("ftp://ftp.fec.gov/FEC/",
+                     ifelse(years %in% intersect(years,valid_years),
+                            years, stop("Not a valid year.")),"/")
+  
+  year_end <- (substr(years,3,4))
+  gen_files <- c("cn", "cm", "pas2", "indiv")
+  src_files <- paste0(gen_files,year_end,".zip")
   src <- paste0(src_root, src_files)
   
   # election results
-  src <- append(src, "http://www.fec.gov/pubrec/fe2012/federalelections2012.xls")
+  src <- append(src, paste0("http://www.fec.gov/pubrec/fe",years,"/federalelections",years,".xls"))
 
   smart_download(obj, src)
   invisible(obj)
@@ -73,7 +80,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
                       runoff_votes = ~sum(runoff_votes, na.rm = TRUE),
                       general_votes = ~sum(general_votes, na.rm = TRUE),
                       ge_winner = ~max(ge_winner_indicator, na.rm = TRUE))
-  readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_2012.csv"))
+  readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_",years,".csv"))
   invisible(obj)
 }
 
@@ -132,3 +139,4 @@ etl_load.etl_fec <- function(obj, years = 2012, ...) {
 
   invisible(obj)
 }
+
