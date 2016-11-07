@@ -19,23 +19,29 @@
 #' }
 etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   
-   
-  valid_years <- c(2012, 2014, 2016)
-  src_root <- paste0("ftp://ftp.fec.gov/FEC/",
-                     ifelse(years %in% intersect(years,valid_years),
-                            years, stop("Not a valid year.")),"/")
-  
-  year_end <- (substr(years,3,4))
-  gen_files <- c("cn", "cm", "pas2", "indiv")
-  src_files <- paste0(gen_files,year_end,".zip")
-  src <- paste0(src_root, src_files)
+  src <- lapply(years, get_filenames) %>%
+    unlist()
   
   # election results
   src <- append(src, paste0("http://www.fec.gov/pubrec/fe",years,"/federalelections",years,".xls"))
 
-  smart_download(obj, src)
+  etl::smart_download(obj, src)
   invisible(obj)
 }
+
+
+get_filenames <- function(year) {
+  valid_years <- c(2012, 2014, 2016)
+  year <- intersect(year, valid_years)
+  gen_files <- c("cn", "cm", "pas2", "indiv")
+  if (length(year) > 0) {
+    year_end <- substr(year, 3, 4)
+    return(paste0("ftp://ftp.fec.gov/FEC/", year, "/", gen_files, year_end, ".zip"))
+  } else {
+    return(NULL)
+  }
+}
+
 
 #' @rdname etl_extract.etl_fec
 #' @importFrom readr read_delim write_csv
@@ -45,11 +51,9 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   
-  
-  year_end <- (substr(years,3,4))
-  gen_files <- c("cn", "cm", "pas2", "indiv")
-  filenames <- paste0(gen_files, year_end, ".zip")
-  src <- paste0(attr(obj, "raw_dir"), "/", filenames)
+  src <- lapply(years, get_filenames) %>%
+    unlist()
+  src <- paste0(attr(obj, "raw_dir"), "/", basename(src))
   
   lapply(src, smart_transform, obj = obj)
   
@@ -91,7 +95,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
 
 smart_transform <- function (obj, filename) {
   message(paste("Transforming", filename, "..."))
-  src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/",year_end, 
+  src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
                             gsub("\\.zip", "_header_file.csv", basename(filename)))
   
   header <- readr::read_csv(src_header) %>%
@@ -131,6 +135,10 @@ smart_transform <- function (obj, filename) {
 #'   etl_load()
 #' }
 etl_load.etl_fec <- function(obj, years = 2012, ...) {
+  
+  src <- lapply(years, get_filenames) %>%
+    unlist()
+  src <- paste0(attr(obj, "load_dir"), "/", basename(src)) # gsub to replace .zip with .csv??
   
   lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
   tablenames <- c("committees", "candidates", "house_elections", "individuals", "contributions")

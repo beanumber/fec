@@ -5,9 +5,7 @@ context("fec")
 
 test_that("mysql works", {
   if (require(RMySQL) & mysqlHasDefault()) {
-    db <- src_mysql(default.file = "~/.my.cnf",
-                    groups = "rs-dbi", dbname = "test",
-                    user = NULL, password = NULL)
+    db <- etl::src_mysql_cnf(groups = "rs-dbi", dbname = "test")
     test_dir <- "~/dumps/fec"
     if (dir.exists(test_dir)) {
       fec <- etl("fec", db = db, dir = test_dir)
