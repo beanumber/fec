@@ -7,8 +7,9 @@
 #' @export
 #' @import etl
 #' @importFrom utils download.file
-#' @examples 
+#' @source \url{http://www.fec.gov/finance/disclosure/ftpdet.shtml}
 #' 
+#' @examples
 #' \dontrun{
 #' fec <- etl("fec", dir = "~/dumps/fec")
 #' fec %>%
@@ -93,10 +94,15 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
 
 #' @importFrom readr cols col_character
 
-smart_transform <- function (obj, filename) {
+smart_transform <- function(obj, filename) {
   message(paste("Transforming", filename, "..."))
-  src_header <- paste0("http://www.fec.gov/finance/disclosure/metadata/", 
-                            gsub("\\.zip", "_header_file.csv", basename(filename)))
+  src_header <- paste0(
+    "http://www.fec.gov/finance/disclosure/metadata/", 
+    gsub("\\.zip", "_header_file.csv", basename(filename))
+  ) %>%
+#    https://github.com/beanumber/fec/issues/9
+    gsub("1[0-9]", "", x = .)
+    
   
   header <- readr::read_csv(src_header) %>%
     names() %>%

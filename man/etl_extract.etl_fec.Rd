@@ -5,12 +5,15 @@
 \alias{etl_load.etl_fec}
 \alias{etl_transform.etl_fec}
 \title{ETL operations for FEC data}
+\source{
+\url{http://www.fec.gov/finance/disclosure/ftpdet.shtml}
+}
 \usage{
 \method{etl_extract}{etl_fec}(obj, years = 2012, ...)
 
 \method{etl_transform}{etl_fec}(obj, years = 2012, ...)
 
-\method{etl_load}{etl_fec}(obj, schema = FALSE, years = 2012, ...)
+\method{etl_load}{etl_fec}(obj, years = 2012, ...)
 }
 \arguments{
 \item{obj}{an \code{\link{etl}} object}
@@ -18,15 +21,6 @@
 \item{years}{a vector of integers representing the years}
 
 \item{...}{arguments passed to methods}
-
-\item{schema}{Either a logical, a filename pointing to SQL schema file, or a character
-vector containing the schema itself. If \code{schema = TRUE}, then the built-in
-schema will be used. Note
-that the flavor of SQL in this file must match the type of the source. That is,
-if your object is of type \code{\link[dplyr]{src_mysql}}, then make sure that
-the schema you specify here is written in MySQL (and not PostgreSQL). Please
-note that SQL syntax is not, in general, completely portable. Use with caution, as this may
-clobber any existing data you have in an existing database.}
 }
 \description{
 ETL operations for FEC data
@@ -36,12 +30,12 @@ If a \code{year} and/or \code{month} is specified, then
 only flight data from matching months is used.
 }
 \examples{
-
 \dontrun{
 fec <- etl("fec", dir = "~/dumps/fec")
 fec \%>\%
   etl_extract() \%>\%
   etl_transform() \%>\%
+  etl_init() \%>\%
   etl_load()
 }
 \dontrun{
@@ -49,7 +43,7 @@ if (require(RMySQL)) {
   # must have pre-existing database "fec"
   # if not, try
   system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec;'")
-  db <- src_mysql(default.file = path.expand("~/.my.cnf"), group = "client",
+  db <- src_mysql(default.file = path.expand("~/.my.cnf"), groups = "rs-dbi",
                   user = NULL, password = NULL, dbname = "fec")
 }
 
@@ -57,7 +51,8 @@ fec <- etl("fec", db, dir = "~/dumps/fec")
 fec \%>\%
   etl_extract() \%>\%
   etl_transform() \%>\%
-  etl_load(schema = TRUE)
+  etl_init() \%>\%
+  etl_load()
 }
 }
 
