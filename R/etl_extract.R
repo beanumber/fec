@@ -25,6 +25,7 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   
   # election results
   src <- append(src, paste0("http://www.fec.gov/pubrec/fe",years,"/federalelections",years,".xls"))
+  
 
   etl::smart_download(obj, src)
   invisible(obj)
@@ -37,7 +38,7 @@ get_filenames <- function(year) {
   gen_files <- c("cn", "cm", "pas2", "indiv")
   if (length(year) > 0) {
     year_end <- substr(year, 3, 4)
-    return(paste0("ftp://ftp.fec.gov/FEC/", year, "/", gen_files, year_end, ".zip"))
+    return(expand.grid(paste0("ftp://ftp.fec.gov/FEC/", year, "/", gen_files, year_end, ".zip")))
   } else {
     return(NULL)
   }
@@ -144,7 +145,7 @@ etl_load.etl_fec <- function(obj, years = 2012, ...) {
   
   src <- lapply(years, get_filenames) %>%
     unlist()
-  src <- paste0(attr(obj, "load_dir"), "/", basename(src)) # gsub to replace .zip with .csv??
+  src <- paste0(attr(obj, "load_dir"), "/", gsub("\\.zip", "\\.csv", basename(src))) # gsub to replace .zip with .csv??
   
   lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
   tablenames <- c("committees", "candidates", "house_elections", "individuals", "contributions")
