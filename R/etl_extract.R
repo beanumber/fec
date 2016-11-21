@@ -26,7 +26,6 @@ etl_extract.etl_fec <- function(obj, years = 2012, ...) {
   # election results
   src <- append(src, paste0("http://www.fec.gov/pubrec/fe",years,"/federalelections",years,".xls"))
   
-
   etl::smart_download(obj, src)
   invisible(obj)
 }
@@ -38,7 +37,7 @@ get_filenames <- function(year) {
   gen_files <- c("cn", "cm", "pas2", "indiv")
   if (length(year) > 0) {
     year_end <- substr(year, 3, 4)
-    return(expand.grid(paste0("ftp://ftp.fec.gov/FEC/", year, "/", gen_files, year_end, ".zip")))
+    return(paste0("ftp://ftp.fec.gov/FEC/", year, "/", gen_files, year_end, ".zip"))
   } else {
     return(NULL)
   }
@@ -46,9 +45,8 @@ get_filenames <- function(year) {
 
 
 #' @rdname etl_extract.etl_fec
-#' @importFrom readr read_delim write_csv
+#' @importFrom readr read_delim write_csv parse_numeric
 #' @importFrom readxl read_excel
-#' @importFrom tidyr extract_numeric
 #' @import dplyr
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2012, ...) {
@@ -60,7 +58,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   lapply(src, smart_transform, obj = obj)
   
   # election results
-  src <- paste0(attr(obj, "raw_dir"), "/federalelections",years,".xls")
+  src <- paste0(attr(obj, "raw_dir"), "/federalelections", years, ".xls")
   # readxl::excel_sheets(src) 
   elections <- readxl::read_excel(src, sheet = 12)
   names(elections) <- names(elections) %>%
@@ -74,7 +72,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
     dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
                    ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
                    ~general_votes, ~ge_winner_indicator) %>%
-    dplyr::mutate_(primary_votes = ~tidyr::extract_numeric(primary_votes),
+    dplyr::mutate_(primary_votes = ~readr::parse_numeric(primary_votes),
                    district = ~trimws(district),
                    is_incumbent = ~incumbent == "(I)") %>%
     dplyr::group_by_(~fec_id) %>%
@@ -145,9 +143,10 @@ etl_load.etl_fec <- function(obj, years = 2012, ...) {
   
   src <- lapply(years, get_filenames) %>%
     unlist()
-  src <- paste0(attr(obj, "load_dir"), "/", gsub("\\.zip", "\\.csv", basename(src))) # gsub to replace .zip with .csv??
+  src <- paste0(attr(obj, "load_dir"), "/", gsub("\\.zip", "\\.csv", basename(src))) 
   
   lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
+  
   tablenames <- c("committees", "candidates", "house_elections", "individuals", "contributions")
   
   # write the table directly to the DB
