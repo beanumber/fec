@@ -18,7 +18,7 @@
 #'   etl_init() %>%
 #'   etl_load()
 #' }
-etl_extract.etl_fec <- function(obj, years = 2012, ...) {
+etl_extract.etl_fec <- function(obj, years = 2014, ...) {
   
   src <- lapply(years, get_filenames) %>%
     unlist()
@@ -49,7 +49,8 @@ get_filenames <- function(year) {
 #' @importFrom readxl read_excel
 #' @import dplyr
 #' @export
-etl_transform.etl_fec <- function(obj, years = 2012, ...) {
+etl_transform.etl_fec <- function(obj, years = 2014, ...) {
+  
   
   src <- lapply(years, get_filenames) %>%
     unlist()
@@ -60,6 +61,9 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
   # election results
   src <- paste0(attr(obj, "raw_dir"), "/federalelections", years, ".xls")
   # readxl::excel_sheets(src) 
+  
+  #try catch here - if there is an excel file, return the excel file. If there is no file, return invisible(obj)
+
   elections <- readxl::read_excel(src, sheet = 12)
   names(elections) <- names(elections) %>%
     tolower() %>%
@@ -88,7 +92,7 @@ etl_transform.etl_fec <- function(obj, years = 2012, ...) {
                       general_votes = ~sum(general_votes, na.rm = TRUE),
                       ge_winner = ~max(ge_winner_indicator, na.rm = TRUE))
   readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_",years,".csv"))
-  invisible(obj)
+  return(invisible(obj))
 }
 
 #' @importFrom readr cols col_character
@@ -139,7 +143,7 @@ smart_transform <- function(obj, filename) {
 #'   etl_init() %>%
 #'   etl_load()
 #' }
-etl_load.etl_fec <- function(obj, years = 2012, ...) {
+etl_load.etl_fec <- function(obj, years = 2014, ...) {
   
   src <- lapply(years, get_filenames) %>%
     unlist()
@@ -157,3 +161,6 @@ etl_load.etl_fec <- function(obj, years = 2012, ...) {
   invisible(obj)
 }
 
+#encoding = "UTF-8"
+#stri_enc_toutf8('GALLAGHER CONST. CO ¿', is_unknown_8bit = FALSE, validate = FALSE
+#db <- src_mysql(dbname = "mtcars", user = "r-user", password = "mypass", host = "localhost")
