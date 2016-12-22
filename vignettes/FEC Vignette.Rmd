@@ -1,0 +1,100 @@
+---
+title: "2014 FEC Data"
+author: "Eva Gjekmarkaj"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## FEC 
+
+This is a vignette on how to use the FEC package and conduct analysis for questions such as contributions by individuals/special interests for any given election year. Below I will use the 2014 data to address the following questions:
+  
+  1. How much money did each State raise?
+
+  2. How much money in aggregate did both parties raise in the 2014 midterm election?
+  
+  3. How much money was contributed from people to pacs for each committee?
+
+##Connect to a local or remote database 
+
+```{r message=FALSE}
+library(fec)
+library(etl)
+library(RMySQL)
+```
+
+```{r message=FALSE}
+db <- src_mysql(dbname = "fec", user = "root", host = "localhost")
+fec <- etl("fec", db)
+```
+
+##ETL
+  - Doing it all at once
+```{r message=FALSE, warning= FALSE}
+#fec %>% 
+#  etl_create()
+```
+
+- Note: For more information on how the ETL Framework works step by step, go to         https://github.com/beanumber/etl#etl
+
+##Analysis
+1. How much money did each State raise?
+```{r}
+fec %>%
+  tbl("individuals") %>%
+  select(state,transaction_amt) %>%
+  group_by(state) %>%
+  summarise(Total = sum(transaction_amt)) %>%
+collect()
+```
+
+- Note: There were an additional 8 classifications under the 'state' column. 
+
+2. How much money in aggregate did both parties raise the 2014 midterm election?
+
+```{r}
+committees <- fec %>% tbl("committees")
+individuals <- fec %>% tbl("individuals")
+Full_Table <- dplyr::full_join(committees, individuals, by = "cmte_id")
+amtRaised <- Full_Table %>%
+  select(cmte_party_affiliation, transaction_amt) %>%
+  group_by(cmte_party_affiliation) %>%
+  summarise(Total = sum(transaction_amt)) %>%
+  filter(cmte_party_affiliation %in% c("REP", "DEM"))
+amtRaised
+```
+
+3. How much money was contributed from people to pacs for each committee?
+
+```{r results="hide"}
+fec %>%
+  tbl("people_to_pacs") %>%
+  select(party,cmte_name, as.double(total_raised)) %>%
+  group_by(party) %>%
+  filter(party %in% c("REP", "DEM"))
+```
+
+```{r}
+## Source:   query [?? x 3]
+## Database: mysql  [@Localhost via UNIX socket:/]
+## Groups: party
+
+##   party                                              cmte_name total_raised
+##   <chr>                                                  <chr>        <dbl>
+## 1    DEM            DEMOCRATIC CONGRESSIONAL CAMPAIGN COMMITTEE     72222085
+## 2    REP                                                   NRCC     69056167
+## 3    DEM               DEMOCRATIC SENATORIAL CAMPAIGN COMMITTEE     58636503
+## 4    REP               NATIONAL REPUBLICAN SENATORIAL COMMITTEE     39506955
+## 5    DEM                                   PALLONE FOR CONGRESS      3729453
+## 6    REP                              BILL CASSIDY FOR CONGRESS      2402917
+## 7    DEM                    GEORGIA FEDERAL ELECTIONS COMMITTEE      1339977
+## 8    DEM DNC SERVICES CORPORATION/DEMOCRATIC NATIONAL COMMITTEE      1237935
+## 9    REP                         MASSACHUSETTS REPUBLICAN PARTY      1123208
+## 10   DEM                             STEPHEN LYNCH FOR CONGRESS       745620
+# ... with more rows
+```
+
