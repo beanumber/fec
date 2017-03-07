@@ -32,7 +32,7 @@ etl_extract.etl_fec <- function(obj, years = 2014, ...) {
 
 
 get_filenames <- function(year) {
-  valid_years <- c(2012, 2014, 2016)
+  valid_years <- seq(from = 1982, to = 2014, by = 2)
   year <- intersect(year, valid_years)
   gen_files <- c("cn", "cm", "pas2", "indiv")
   if (length(year) > 0) {
@@ -64,6 +64,7 @@ etl_transform.etl_fec <- function(obj, years = 2014, ...) {
   
   #try catch here - if there is an excel file, return the excel file. If there is no file, return invisible(obj)
 
+  # https://github.com/beanumber/fec/issues/11
   elections <- readxl::read_excel(src, sheet = 12)
   names(elections) <- names(elections) %>%
     tolower() %>%

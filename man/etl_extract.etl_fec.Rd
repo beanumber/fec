@@ -9,11 +9,11 @@
 \url{http://www.fec.gov/finance/disclosure/ftpdet.shtml}
 }
 \usage{
-\method{etl_extract}{etl_fec}(obj, years = 2012, ...)
+\method{etl_extract}{etl_fec}(obj, years = 2014, ...)
 
-\method{etl_transform}{etl_fec}(obj, years = 2012, ...)
+\method{etl_transform}{etl_fec}(obj, years = 2014, ...)
 
-\method{etl_load}{etl_fec}(obj, years = 2012, ...)
+\method{etl_load}{etl_fec}(obj, years = 2014, ...)
 }
 \arguments{
 \item{obj}{an \code{\link{etl}} object}
