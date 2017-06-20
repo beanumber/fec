@@ -24,7 +24,9 @@ etl_extract.etl_fec <- function(obj, years = 2014, ...) {
     unlist()
   
   # election results
-  src <- append(src, paste0("http://www.fec.gov/pubrec/fe",years,"/federalelections",years,".xls"))
+  src <- append(src, 
+                paste0("http://www.fec.gov/pubrec/fe", years, 
+                       "/federalelections", years, ".xls"))
   
   etl::smart_download(obj, src)
   invisible(obj)
@@ -45,12 +47,11 @@ get_filenames <- function(year) {
 
 
 #' @rdname etl_extract.etl_fec
-#' @importFrom readr read_delim write_csv parse_numeric
+#' @importFrom readr read_delim write_csv parse_number
 #' @importFrom readxl read_excel
 #' @import dplyr
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2014, ...) {
-  
   
   src <- lapply(years, get_filenames) %>%
     unlist()
@@ -65,7 +66,9 @@ etl_transform.etl_fec <- function(obj, years = 2014, ...) {
   #try catch here - if there is an excel file, return the excel file. If there is no file, return invisible(obj)
 
   # https://github.com/beanumber/fec/issues/11
-  elections <- readxl::read_excel(src, sheet = 12)
+  sheets <- readxl::excel_sheets(src)
+  house_sheet <- grep("House Results", x = sheets)
+  elections <- readxl::read_excel(src, sheet = house_sheet)
   names(elections) <- names(elections) %>%
     tolower() %>%
     gsub(" ", "_", x = .) %>%
@@ -77,7 +80,7 @@ etl_transform.etl_fec <- function(obj, years = 2014, ...) {
     dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
                    ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
                    ~general_votes, ~ge_winner_indicator) %>%
-    dplyr::mutate_(primary_votes = ~readr::parse_numeric(primary_votes),
+    dplyr::mutate_(primary_votes = ~readr::parse_number(primary_votes),
                    district = ~trimws(district),
                    is_incumbent = ~incumbent == "(I)") %>%
     dplyr::group_by_(~fec_id) %>%
@@ -133,8 +136,7 @@ smart_transform <- function(obj, filename) {
 #'   # must have pre-existing database "fec"
 #'   # if not, try
 #'   system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec;'")
-#'   db <- src_mysql(default.file = path.expand("~/.my.cnf"), groups = "rs-dbi",
-#'                   user = NULL, password = NULL, dbname = "fec")
+#'   db <- src_mysql_cnf(dbname = "fec")
 #' }
 #' 
 #' fec <- etl("fec", db, dir = "~/dumps/fec")
@@ -148,11 +150,13 @@ etl_load.etl_fec <- function(obj, years = 2014, ...) {
   
   src <- lapply(years, get_filenames) %>%
     unlist()
-  src <- paste0(attr(obj, "load_dir"), "/", gsub("\\.zip", "\\.csv", basename(src))) 
+  src <- paste0(attr(obj, "load_dir"), "/", 
+                gsub("\\.zip", "\\.csv", basename(src))) 
   
   lcl <- list.files(attr(obj, "load_dir"), full.names = TRUE)
   
-  tablenames <- c("committees", "candidates", "house_elections", "individuals", "contributions")
+  tablenames <- c("committees", "candidates", 
+                  "house_elections", "individuals", "contributions")
   
   # write the table directly to the DB
   message("Writing FEC data to the database...")
