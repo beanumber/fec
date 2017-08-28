@@ -145,7 +145,8 @@ CREATE VIEW people_to_pacs AS
   GROUP BY i.cmte_id, c.cmte_name
   ORDER BY total_raised desc;
 
-COPY candidates FROM '/Users/bbaumer/dumps/fec/load/cn12.csv' CSV HEADER;
-COPY committees FROM '/Users/bbaumer/dumps/fec/load/cm12.csv' CSV HEADER;
-COPY contributions FROM '/Users/bbaumer/dumps/fec/load/pas212.csv' CSV HEADER;
-COPY individuals FROM '/Users/bbaumer/dumps/fec/load/indiv12-utf8.csv' CSV HEADER;
+
+-- COPY candidates FROM '/Users/bbaumer/dumps/fec/load/cn12.csv' CSV HEADER;
+-- COPY committees FROM '/Users/bbaumer/dumps/fec/load/cm12.csv' CSV HEADER;
+-- COPY contributions FROM '/Users/bbaumer/dumps/fec/load/pas212.csv' CSV HEADER;
+-- COPY individuals FROM '/Users/bbaumer/dumps/fec/load/indiv12-utf8.csv' CSV HEADER;

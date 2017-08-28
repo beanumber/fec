@@ -18,6 +18,7 @@ CREATE TABLE `candidates` (
   `cand_city` varchar(30) NOT NULL default '',
   `cand_state` varchar(2) NOT NULL default '',
   `cand_zip` mediumint(9) DEFAULT NULL,
+  `election_cycle` smallint(4) DEFAULT NULL,
   PRIMARY KEY (`cand_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -39,6 +40,7 @@ CREATE TABLE `committees` (
   `org_type` varchar(1) NOT NULL default '',
   `connected_org_name` varchar(200) NOT NULL default '',
   `cand_id` varchar(9) NOT NULL default '',
+  `election_cycle` smallint(4) DEFAULT NULL,
   PRIMARY KEY (`cmte_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -66,7 +68,8 @@ CREATE TABLE `contributions` (
   `file_num` int(22) DEFAULT NULL,
   `memo_cd` varchar(1) NOT NULL default '',
   `memo_text` varchar(100) NOT NULL default '',
-  `sub_id` double DEFAULT NULL
+  `sub_id` double DEFAULT NULL,
+  `election_cycle` smallint(4) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `individuals`;
@@ -92,7 +95,8 @@ CREATE TABLE `individuals` (
   `file_num` int(22) DEFAULT NULL,
   `memo_cd` varchar(1) NOT NULL default '',
   `memo_text` varchar(100) NOT NULL default '',
-  `sub_id` double DEFAULT NULL
+  `sub_id` double DEFAULT NULL,
+  `election_cycle` smallint(4) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 
@@ -109,6 +113,7 @@ CREATE TABLE `house_elections` (
   `runoff_votes` int NOT NULL default 0,
   `general_votes` int NOT NULL default 0,
   `ge_winner` varchar(1) NOT NULL default '',
+  `election_cycle` smallint(4) DEFAULT NULL,
   PRIMARY KEY (`fec_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
@@ -117,7 +122,8 @@ CREATE TABLE `house_elections` (
 DROP VIEW IF EXISTS `pacs_to_candidates`;
 
 CREATE VIEW `pacs_to_candidates` AS
-  SELECT con.cand_id, can.cand_name
+  SELECT con.election_cycle
+  , con.cand_id, can.cand_name
   , max(CAND_party_AFFILIATION) as party
   , max(cand_state) as state
   , max(CAND_OFFICE_DISTRICT) as district
@@ -131,13 +137,14 @@ CREATE VIEW `pacs_to_candidates` AS
   , count(distinct con.cmte_id) as num_pacs
   FROM contributions con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id
-  GROUP BY con.cand_id
+  GROUP BY con.cand_id, election_cycle
   ORDER BY total_spent desc;
 
 DROP VIEW IF EXISTS `people_to_pacs`;
 
 CREATE VIEW `people_to_pacs` AS
-  SELECT i.cmte_id, c.cmte_name
+  SELECT i.election_cycle
+  , i.cmte_id, c.cmte_name
   , max(c.cmte_party_affiliation) as party
   , count(distinct name) as num_donors
   , sum(i.transaction_amt) as total_raised

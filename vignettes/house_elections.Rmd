@@ -19,44 +19,41 @@ This is a vignette on how to use the FEC package and conduct analysis for questi
   
   3. How much money was contributed from people to pacs for each committee?
 
-##Connect to a local or remote database 
+## Connect to a local or remote database 
 
 ```{r message=FALSE}
 library(fec)
-library(etl)
-library(RMySQL)
+db <- src_mysql_cnf(dbname = "fec", host = "127.0.0.1")
+fec <- etl("fec", db = db, dir = "~/dumps/fec")
+fec
 ```
 
-```{r message=FALSE}
-db <- src_mysql(dbname = "fec", user = "root", host = "localhost")
-fec <- etl("fec", db)
-```
 
-##ETL
+## ETL
+
   - Doing it all at once
-```{r message=FALSE, warning= FALSE}
-#fec %>% 
-#  etl_create()
+```{r message=FALSE, eval=FALSE, warning=FALSE}
+fec %>%
+  etl_create(years = 2012)
 ```
 
-- Note: For more information on how the ETL Framework works step by step, go to         https://github.com/beanumber/etl#etl
+- Note: For more information on [how the ETL Framework works](https://github.com/beanumber/etl)
 
-##Analysis
-1. How much money did each State raise?
-```{r}
+### How much money did the residents of each state contribute?
+
+```{r, eval=FALSE}
 fec %>%
   tbl("individuals") %>%
-  select(state,transaction_amt) %>%
   group_by(state) %>%
   summarise(Total = sum(transaction_amt)) %>%
-collect()
+  arrange(desc(Total))
 ```
 
 - Note: There were an additional 8 classifications under the 'state' column. 
 
-2. How much money in aggregate did both parties raise the 2014 midterm election?
+### How much money in aggregate did both parties raise the 2014 midterm election?
 
-```{r}
+```{r, eval=FALSE}
 committees <- fec %>% tbl("committees")
 individuals <- fec %>% tbl("individuals")
 Full_Table <- dplyr::full_join(committees, individuals, by = "cmte_id")
@@ -70,7 +67,7 @@ amtRaised
 
 3. How much money was contributed from people to pacs for each committee?
 
-```{r results="hide"}
+```{r eval=FALSE, results="hide"}
 fec %>%
   tbl("people_to_pacs") %>%
   select(party,cmte_name, as.double(total_raised)) %>%

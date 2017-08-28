@@ -4,7 +4,7 @@ context("fec")
 ## TODO: Add more tests
 
 test_that("mysql works", {
-  if (require(RMySQL) & mysqlHasDefault()) {
+  if (require(RMySQL) && mysqlHasDefault()) {
     db <- etl::src_mysql_cnf(groups = "rs-dbi", dbname = "test")
     test_dir <- "~/dumps/fec"
     if (dir.exists(test_dir)) {
@@ -17,9 +17,6 @@ test_that("mysql works", {
 })
 
 #   system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec'")
-#   db <- src_mysql(user = NULL, host = "localhost", 
-#                      dbname = "fec", password = NULL, default.file = "~/.my.cnf")
-#   fec <- etl("fec", db = db, dir = "~/dumps/fec")
 #   fec %>%
 #     etl_create()
 #   expect_equal(fec %>% tbl("individuals") %>% nrow(), 3349043)
@@ -27,16 +24,20 @@ test_that("mysql works", {
 #   expect_equal(fec %>% tbl("candidates") %>% nrow(), 5628)
 # })
 # 
-# test_that("postgres works", {
-#   db <- src_postgres(
-#     user = "postgres", 
-#     host = "localhost", 
-#     dbname = "fec", 
-#     password = "postgres", 
-#     port = 5434
-#   )
-#   fec <- etl("fec", db = db, dir = "~/dumps/fec")
-#   fec %>%
-#     etl_create()
-#   expect_equal(fec %>% tbl("individuals") %>% nrow(), 3349043)
-# })
+test_that("postgres works", {
+#  system("sudo -u postgres createdb fec")
+  if (require(RPostgreSQL) && FALSE) {
+    db <- src_postgres(
+      user = "postgres",
+      host = "localhost",
+      dbname = "fec",
+      password = "postgres",
+      port = 5432
+    )
+    fec <- etl("fec", db = db, dir = "~/dumps/fec")
+    fec %>%
+      etl_create()
+    expect_equal(fec %>% tbl("individuals") %>% nrow(), 3349043)
+    
+  }
+})
