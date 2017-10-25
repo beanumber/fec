@@ -1,6 +1,6 @@
 Package: fec
 Title: Campaign finance for Federal Elections
-Version: 0.0.0.9011
+Version: 0.0.0.9012
 Date: 2017-08-31
 Authors@R: c(
     person("Benjamin S.", "Baumer", email = "ben.baumer@gmail.com",
