@@ -2,8 +2,6 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(".")
 
 #' @rdname etl_extract.etl_fec
 #' @importFrom readr read_delim write_csv parse_number
-#' @importFrom readxl read_excel
-#' @importFrom utils head
 #' @import dplyr
 #' @export
 etl_transform.etl_fec <- function(obj, years = 2014, ...) {
@@ -16,46 +14,21 @@ etl_transform.etl_fec <- function(obj, years = 2014, ...) {
   lapply(src, smart_transform, obj = obj)
   
   # election results
-  src <- file.path(attr(obj, "raw_dir"), paste0("federalelections", years, ".xls"))
+  valid <- etl::valid_year_month(years, months = 1)
+  available <- data_frame(path = list.files(attr(obj, "raw_dir"), pattern = "election", full.names = TRUE)) %>%
+    mutate(year = as.integer(readr::parse_number(basename(path))))
+  src <- valid %>%
+    inner_join(available, by = "year") %>%
+    pull(path)
   
   #try catch here - if there is an excel file, return the excel file. If there is no file, return invisible(obj)
   if (file.size(src) < 100000) {
     warning("No valid election results found")
     return(invisible(obj))
   }
-
-  # https://github.com/beanumber/fec/issues/11
-  sheets <- readxl::excel_sheets(src)
-  house_sheet <- utils::head(grep("House.+Res", x = sheets), 1)
-  elections <- readxl::read_excel(src, sheet = house_sheet)
-  names(elections) <- names(elections) %>%
-    tolower() %>%
-    gsub(" ", "_", x = .) %>%
-    gsub("#", "", x = .) %>%
-    gsub("%", "pct", x = .)
-  house_elections <- elections %>%
-    dplyr::filter_(~fec_id != "n/a", ~d != "S") %>%
-    dplyr::rename_(district = ~d, incumbent = ~`(i)`) %>%
-    dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
-                   ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
-                   ~general_votes, ~ge_winner_indicator) %>%
-    dplyr::mutate_(primary_votes = ~readr::parse_number(primary_votes),
-                   general_votes = ~readr::parse_number(general_votes),
-                   district = ~trimws(district),
-                   is_incumbent = ~incumbent == "(I)") %>%
-    dplyr::group_by_(~fec_id) %>%
-    dplyr::summarize_(state = ~max(state_abbreviation), 
-                      district = ~max(district),
-                      incumbent = ~sum(is_incumbent, na.rm = TRUE) > 0, 
-                      name = ~max(candidate_name), 
-                      party = ~ifelse("R" %in% party, "R", 
-                                      ifelse("D" %in% party, "D", max(party))),
-                      #               party = paste0(unique(party), collapse = "/"),
-                      primary_votes = ~sum(primary_votes, na.rm = TRUE), 
-                      runoff_votes = ~sum(runoff_votes, na.rm = TRUE),
-                      general_votes = ~sum(general_votes, na.rm = TRUE),
-                      ge_winner = ~max(ge_winner_indicator, na.rm = TRUE))
-  readr::write_csv(house_elections, paste0(attr(obj, "load_dir"), "/house_elections_", years, ".csv"))
+  
+  house_elections <- sapply(src, transform_elections)
+  
   return(invisible(obj))
 }
 
@@ -89,42 +62,44 @@ smart_transform <- function(obj, filename) {
   readr::write_csv(data, path = lcl, na = "")
 }
 
-#' @rdname etl_extract.etl_fec
-#' @importFrom DBI dbWriteTable dbListTables
-#' @export
-#' @examples 
-#' \dontrun{
-#' if (require(RMySQL)) {
-#'   # must have pre-existing database "fec"
-#'   # if not, try
-#'   system("mysql -e 'CREATE DATABASE IF NOT EXISTS fec;'")
-#'   db <- src_mysql_cnf(dbname = "fec")
-#' }
-#' 
-#' fec <- etl("fec", db, dir = "~/dumps/fec")
-#' fec %>%
-#'   etl_extract() %>%
-#'   etl_transform() %>%
-#'   etl_init() %>%
-#'   etl_load()
-#' }
-etl_load.etl_fec <- function(obj, years = 2014, ...) {
-  
-  lcl <- data_frame(
-    path = list.files(attr(obj, "load_dir"), full.names = TRUE, 
-                    pattern = paste0(years - 2000, "\\.csv"))) %>%
-    mutate_(table = ~case_when(
-      grepl("cm", path) ~ "committees",
-      grepl("cn", path) ~ "candidates",
-      grepl("house", path) ~ "house_elections",
-      grepl("indiv", path) ~ "individuals",
-      TRUE ~ "contributions"
-    ))
-  
-  # write the table directly to the DB
-  message("Writing FEC data to the database...")
-  mapply(DBI::dbWriteTable, name = lcl$table, value = lcl$path, 
-         MoreArgs = list(conn = obj$con, append = TRUE, ... = ...))
+#' @importFrom readxl read_excel
+#' @importFrom utils head
+#' @import dplyr
 
-  invisible(obj)
+transform_elections <- function(path) {
+  # https://github.com/beanumber/fec/issues/11
+  sheets <- readxl::excel_sheets(path)
+  house_sheet <- utils::head(grep("House.+Res", x = sheets), 1)
+  elections <- readxl::read_excel(path, sheet = house_sheet)
+  names(elections) <- names(elections) %>%
+    tolower() %>%
+    gsub(" ", "_", x = .) %>%
+    gsub("#", "", x = .) %>%
+    gsub("%", "pct", x = .)
+  house_elections <- elections %>%
+    dplyr::filter_(~fec_id != "n/a", ~d != "S") %>%
+    dplyr::rename_(district = ~d, incumbent = ~`(i)`) %>%
+    dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
+                   ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
+                   ~general_votes, ~ge_winner_indicator) %>%
+    dplyr::mutate_(primary_votes = ~readr::parse_number(primary_votes),
+                   general_votes = ~readr::parse_number(general_votes),
+                   district = ~trimws(district),
+                   is_incumbent = ~incumbent == "(I)") %>%
+    dplyr::group_by_(~fec_id) %>%
+    dplyr::summarize_(state = ~max(state_abbreviation), 
+                      district = ~max(district),
+                      incumbent = ~sum(is_incumbent, na.rm = TRUE) > 0, 
+                      name = ~max(candidate_name), 
+                      party = ~ifelse("R" %in% party, "R", 
+                                      ifelse("D" %in% party, "D", max(party))),
+                      #               party = paste0(unique(party), collapse = "/"),
+                      primary_votes = ~sum(primary_votes, na.rm = TRUE), 
+                      runoff_votes = ~sum(runoff_votes, na.rm = TRUE),
+                      general_votes = ~sum(general_votes, na.rm = TRUE),
+                      ge_winner = ~max(ge_winner_indicator, na.rm = TRUE))
+  
+  year <- readr::parse_number(basename(path))
+  out_path <- file.path(gsub("raw", "load", dirname(path)), paste0("house_elections_", year, ".csv"))
+  readr::write_csv(house_elections, out_path)
 }
