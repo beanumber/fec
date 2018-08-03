@@ -1,6 +1,6 @@
 ---
-title: "2014 FEC Data"
-author: "Eva Gjekmarkaj"
+title: "Campaign donations from the Federal Election Commission"
+author: "Eva Gjekmarkaj, Ben Baumer"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -23,7 +23,7 @@ This is a vignette on how to use the FEC package and conduct analysis for questi
 
 ```{r message=FALSE}
 library(fec)
-db <- src_mysql_cnf(dbname = "fec", host = "127.0.0.1")
+db <- src_mysql_cnf(dbname = "fec")
 fec <- etl("fec", db = db, dir = "~/dumps/fec")
 fec
 ```
@@ -34,7 +34,7 @@ fec
   - Doing it all at once
 ```{r message=FALSE, eval=FALSE, warning=FALSE}
 fec %>%
-  etl_create(years = 2012)
+  etl_create(years = 2014)
 ```
 
 - Note: For more information on [how the ETL Framework works](https://github.com/beanumber/etl)
@@ -51,18 +51,16 @@ fec %>%
 
 - Note: There were an additional 8 classifications under the 'state' column. 
 
-### How much money in aggregate did both parties raise the 2014 midterm election?
+### How much money in aggregate did political parties raise the 2016 presidential election?
 
 ```{r, eval=FALSE}
 committees <- fec %>% tbl("committees")
 individuals <- fec %>% tbl("individuals")
-Full_Table <- dplyr::full_join(committees, individuals, by = "cmte_id")
-amtRaised <- Full_Table %>%
-  select(cmte_party_affiliation, transaction_amt) %>%
+
+committees %>%
+  inner_join(individuals, by = "cmte_id") %>%
   group_by(cmte_party_affiliation) %>%
-  summarise(Total = sum(transaction_amt)) %>%
-  filter(cmte_party_affiliation %in% c("REP", "DEM"))
-amtRaised
+  summarise(Total = sum(transaction_amt, na.rm = TRUE))
 ```
 
 3. How much money was contributed from people to pacs for each committee?
@@ -70,28 +68,5 @@ amtRaised
 ```{r eval=FALSE, results="hide"}
 fec %>%
   tbl("people_to_pacs") %>%
-  select(party,cmte_name, as.double(total_raised)) %>%
-  group_by(party) %>%
-  filter(party %in% c("REP", "DEM"))
+  select(party,cmte_name, as.double(total_raised))
 ```
-
-```{r}
-## Source:   query [?? x 3]
-## Database: mysql  [@Localhost via UNIX socket:/]
-## Groups: party
-
-##   party                                              cmte_name total_raised
-##   <chr>                                                  <chr>        <dbl>
-## 1    DEM            DEMOCRATIC CONGRESSIONAL CAMPAIGN COMMITTEE     72222085
-## 2    REP                                                   NRCC     69056167
-## 3    DEM               DEMOCRATIC SENATORIAL CAMPAIGN COMMITTEE     58636503
-## 4    REP               NATIONAL REPUBLICAN SENATORIAL COMMITTEE     39506955
-## 5    DEM                                   PALLONE FOR CONGRESS      3729453
-## 6    REP                              BILL CASSIDY FOR CONGRESS      2402917
-## 7    DEM                    GEORGIA FEDERAL ELECTIONS COMMITTEE      1339977
-## 8    DEM DNC SERVICES CORPORATION/DEMOCRATIC NATIONAL COMMITTEE      1237935
-## 9    REP                         MASSACHUSETTS REPUBLICAN PARTY      1123208
-## 10   DEM                             STEPHEN LYNCH FOR CONGRESS       745620
-# ... with more rows
-```
-

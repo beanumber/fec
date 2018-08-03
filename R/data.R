@@ -20,3 +20,7 @@
 #' }
 #' @source \url{https://transition.fec.gov/pubrec/electionresults.shtml} 
 "house_elections_2012"
+
+#' FEC variables
+#' @docType data
+"fec_vars"

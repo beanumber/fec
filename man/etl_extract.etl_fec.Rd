@@ -3,6 +3,7 @@
 \name{etl_extract.etl_fec}
 \alias{etl_extract.etl_fec}
 \alias{etl_load.etl_fec}
+\alias{etl_init.etl_fec}
 \alias{etl_transform.etl_fec}
 \title{ETL operations for FEC data}
 \source{
@@ -15,6 +16,9 @@
 
 \method{etl_load}{etl_fec}(obj, years = 2014, ...)
 
+\method{etl_init}{etl_fec}(obj, script = NULL, schema_name = "init",
+  pkg = attr(obj, "pkg"), ext = NULL, ...)
+
 \method{etl_transform}{etl_fec}(obj, years = 2014, ...)
 }
 \arguments{
@@ -23,6 +27,24 @@
 \item{years}{a vector of integers representing the years}
 
 \item{...}{arguments passed to methods}
+
+\item{script}{either a vector of SQL commands to be executed, or
+a file path as a character vector containing an SQL initialization script.
+If \code{NULL} (the default), then the appropriate built-in
+schema will be fetched by \code{\link{find_schema}}, if it exists. Note
+that the flavor of SQL in this file must match the type of the source. That is,
+if your object is of type \code{\link[dplyr]{src_mysql}}, then make sure that
+the schema you specify here is written in MySQL (and not PostgreSQL). Please
+note that SQL syntax is not, in general, completely portable. Use with caution, as this may
+clobber any existing data you have in an existing database.}
+
+\item{schema_name}{The name of the schema. Default is \code{init}.}
+
+\item{pkg}{The package defining the schema. Should be set in \code{\link{etl}}.}
+
+\item{ext}{The file extension used for the SQL schema file. If NULL (the default) it
+be inferred from the \code{src_*} class of \code{con}. For example, if \code{con}
+has class \code{\link[dplyr]{src_sqlite}} then \code{ext} will be \code{sqlite}.}
 }
 \description{
 ETL operations for FEC data

@@ -11,12 +11,12 @@ etl_transform.etl_fec <- function(obj, years = 2014, ...) {
     basename() %>%
     file.path(attr(obj, "raw_dir"), .)
   
-  lapply(src, smart_transform, obj = obj)
+  lapply(src, fec_transform, obj = obj)
   
   # election results
   valid <- etl::valid_year_month(years, months = 1)
   available <- data_frame(path = list.files(attr(obj, "raw_dir"), pattern = "election", full.names = TRUE)) %>%
-    mutate(year = as.integer(readr::parse_number(basename(path))))
+    mutate_(year = ~as.integer(readr::parse_number(basename(path))))
   src <- valid %>%
     inner_join(available, by = "year") %>%
     pull(path)
@@ -34,7 +34,7 @@ etl_transform.etl_fec <- function(obj, years = 2014, ...) {
 
 #' @importFrom readr cols col_character
 
-smart_transform <- function(obj, filename) {
+fec_transform <- function(obj, filename) {
   message(paste("Transforming", filename, "..."))
   src_header <- paste0(
     "http://www.fec.gov/finance/disclosure/metadata/", 

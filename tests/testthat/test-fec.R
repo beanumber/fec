@@ -35,6 +35,7 @@ test_that("postgres works", {
       port = 5432
     )
     fec <- etl("fec", db = db, dir = "~/dumps/fec")
+    etl_init(fec)
     fec %>%
       etl_create()
     expect_equal(fec %>% tbl("individuals") %>% nrow(), 3349043)

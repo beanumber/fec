@@ -41,12 +41,45 @@ CREATE TABLE `committees` (
   `connected_org_name` varchar(200) NOT NULL default '',
   `cand_id` varchar(9) NOT NULL default '',
   `election_cycle` smallint(4) DEFAULT NULL,
-  PRIMARY KEY (`cmte_id`)
+  PRIMARY KEY (`cmte_id`),
+  KEY (`cand_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `contributions`;
+DROP TABLE IF EXISTS `contrib_com_to_com`;
+CREATE TABLE `contrib_com_to_com` (
+  `cmte_id` varchar(9) NOT NULL default '',
+  `amndt_ind` varchar(1) NOT NULL default '',
+  `rpt_type` varchar(3) NOT NULL default '',
+  `transaction_pgi` varchar(5) NOT NULL default '',
+  `image_num` varchar(18) NOT NULL default '',
+  `transaction_type` varchar(3) NOT NULL default '',
+  `entity_type` varchar(3) NOT NULL default '',
+  `name` varchar(200) NOT NULL default '',
+  `city` varchar(30) NOT NULL default '',
+  `state` varchar(2) NOT NULL default '',
+  `zip_code` varchar(9) NOT NULL default '',
+  `employer` varchar(38) NOT NULL default '',
+  `occupation` varchar(38) NOT NULL default '',
+  `transaction_dt` varchar(8) NOT NULL default '',
+  `transaction_amt` decimal(14,2) NOT NULL default 0,
+  `other_id` varchar(9) NOT NULL default '',
+  `tran_id` varchar(32) NOT NULL default '',
+  `file_num` int(22) DEFAULT NULL,
+  `memo_cd` varchar(1) NOT NULL default '',
+  `memo_text` varchar(100) NOT NULL default '',
+  `sub_id` double DEFAULT NULL,
+  `election_cycle` smallint(4) DEFAULT NULL,
+  KEY (`tran_id`),
+  KEY (`cmte_id`),
+  KEY (`other_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE `contributions` (
+
+
+
+DROP TABLE IF EXISTS `contrib_com_to_cand`;
+
+CREATE TABLE `contrib_com_to_cand` (
   `cmte_id` varchar(9) NOT NULL default '',
   `amndt_ind` varchar(1) NOT NULL default '',
   `rpt_type` varchar(3) NOT NULL default '',
@@ -69,12 +102,50 @@ CREATE TABLE `contributions` (
   `memo_cd` varchar(1) NOT NULL default '',
   `memo_text` varchar(100) NOT NULL default '',
   `sub_id` double DEFAULT NULL,
-  `election_cycle` smallint(4) DEFAULT NULL
+  `election_cycle` smallint(4) DEFAULT NULL,
+  KEY (`tran_id`),
+  KEY (`cmte_id`),
+  KEY (`cand_id`),
+  KEY (`other_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-DROP TABLE IF EXISTS `individuals`;
+DROP TABLE IF EXISTS `expenditures`;
+CREATE TABLE `expenditures` (
+  `cmte_id` varchar(9) NOT NULL default '',
+  `amndt_ind` varchar(1) NOT NULL default '',
+  `rpt_yr` bigint(20) DEFAULT NULL,
+  `rpt_type` varchar(3) NOT NULL default '',
+  `image_num` varchar(18) NOT NULL default '',
+  `line_num` varchar(3) NOT NULL default '',
+  `form_tp_cd` varchar(3) NOT NULL default '',
+  `sched_tp_cd` varchar(2) NOT NULL default '',
+  `name` varchar(200) NOT NULL default '',
+  `city` varchar(30) NOT NULL default '',
+  `state` varchar(2) NOT NULL default '',
+  `zip_code` varchar(9) NOT NULL default '',
+  `transaction_dt` varchar(8) NOT NULL default '',
+  `transaction_amt` decimal(14,2) NOT NULL default 0,
+  `transaction_pgi` varchar(5) NOT NULL default '',
+  `purpose` text,
+  `category` bigint(20) DEFAULT NULL,
+  `category_desc` text,
+  `memo_cd` varchar(1) NOT NULL default '',
+  `memo_text` varchar(100) NOT NULL default '',
+  `entity_type` varchar(3) NOT NULL default '',
+  `sub_id` double DEFAULT NULL,
+  `file_num` int(22) DEFAULT NULL,
+  `tran_id` varchar(32) NOT NULL default '',
+  `back_ref_tran_id` text,
+  `election_cycle` smallint(4) DEFAULT NULL,
+  KEY (`tran_id`),
+  KEY (`cmte_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE `individuals` (
+
+
+DROP TABLE IF EXISTS `contrib_indiv_to_com`;
+
+CREATE TABLE `contrib_indiv_to_com` (
   `cmte_id` varchar(9) NOT NULL default '',
   `amndt_ind` varchar(1) NOT NULL default '',
   `rpt_type` varchar(3) NOT NULL default '',
@@ -96,7 +167,9 @@ CREATE TABLE `individuals` (
   `memo_cd` varchar(1) NOT NULL default '',
   `memo_text` varchar(100) NOT NULL default '',
   `sub_id` double DEFAULT NULL,
-  `election_cycle` smallint(4) DEFAULT NULL
+  `election_cycle` smallint(4) DEFAULT NULL,
+  KEY (`tran_id`),
+  KEY (`cmte_id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 
@@ -118,6 +191,22 @@ CREATE TABLE `house_elections` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 
+DROP TABLE IF EXISTS `cand_com_link`;
+CREATE TABLE `cand_com_link` (
+  `cand_id` varchar(9) NOT NULL default '',
+  `cand_election_yr` smallint(4) NOT NULL default 0,
+  `fec_election_yr` smallint(4) NOT NULL default 0,
+  `cmte_id` varchar(9) NOT NULL default '',
+  `cmte_tp`  varchar(1) NOT NULL default '',
+  `cmte_dsgn` varchar(1) NOT NULL default '',
+  `linkage_id` mediumint(6) NOT NULL default 0,
+  `election_cycle` smallint(4) NOT NULL default 0,
+  PRIMARY KEY (`linkage_id`),
+  KEY (`cand_id`),
+  KEY (`cmte_id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+
 
 DROP VIEW IF EXISTS `pacs_to_candidates`;
 
@@ -135,9 +224,9 @@ CREATE VIEW `pacs_to_candidates` AS
   , sum(if(con.transaction_type IN ('24A', '24N'), con.transaction_amt, 0)) /
     (sum(con.transaction_amt) + 1) as attack_rate
   , count(distinct con.cmte_id) as num_pacs
-  FROM contributions con
+  FROM contrib_com_to_cand con
   LEFT JOIN candidates can ON can.cand_id = con.cand_id
-  GROUP BY con.cand_id, election_cycle
+  GROUP BY con.election_cyle, con.cand_id, election_cycle
   ORDER BY total_spent desc;
 
 DROP VIEW IF EXISTS `people_to_pacs`;
@@ -149,9 +238,9 @@ CREATE VIEW `people_to_pacs` AS
   , count(distinct name) as num_donors
   , sum(i.transaction_amt) as total_raised
   , sum(i.transaction_amt) / count(distinct name) as avg_donation
-  FROM individuals i
+  FROM contrib_indiv_to_com i
   LEFT JOIN committees c ON c.cmte_id = i.cmte_id
-  GROUP BY i.cmte_id
+  GROUP BY i.election_cycle, i.cmte_id
   ORDER BY total_raised desc;
 
 
