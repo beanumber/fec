@@ -52,9 +52,18 @@ fec_transform <- function(obj, filename) {
   col_types <- readr::cols("transaction_tp" = readr::col_character())
   data <- readr::read_delim(filename, col_names = header, 
                             col_types = col_types, delim = "|")
-  # add new column for election cycle
-  data <- data %>%
-    mutate(election_cycle = readr::parse_number(filename) + 2000)
+#  data <- data %>%
+    # add new column for election cycle
+#    mutate(election_cycle = readr::parse_number(filename) + 2000)
+  
+  if ("transaction_dt" %in% names(data)) {
+    data <- data %>%
+      mutate(transaction_dt = lubridate::mdy(transaction_dt))
+  }
+  if ("sub_id" %in% names(data)) {
+    data <- data %>%
+      mutate(sub_id = format(sub_id, scientific = FALSE))
+  }
   
 #  data <- read.delim(filename, col.names = header, sep = "|")
   
@@ -78,7 +87,7 @@ transform_elections <- function(path) {
     gsub("%", "pct", x = .)
   house_elections <- elections %>%
     dplyr::filter_(~fec_id != "n/a", ~d != "S") %>%
-    dplyr::rename_(district = ~d, incumbent = ~`(i)`) %>%
+    dplyr::rename_(district = ~d, incumbent = ~`(i)`, cand_id = fec_id) %>%
     dplyr::select_(~state_abbreviation, ~district, ~fec_id, ~incumbent, 
                    ~candidate_name, ~party, ~primary_votes, ~runoff_votes, 
                    ~general_votes, ~ge_winner_indicator) %>%
@@ -86,7 +95,7 @@ transform_elections <- function(path) {
                    general_votes = ~readr::parse_number(general_votes),
                    district = ~trimws(district),
                    is_incumbent = ~incumbent == "(I)") %>%
-    dplyr::group_by_(~fec_id) %>%
+    dplyr::group_by_(~cand_id) %>%
     dplyr::summarize_(state = ~max(state_abbreviation), 
                       district = ~max(district),
                       incumbent = ~sum(is_incumbent, na.rm = TRUE) > 0, 

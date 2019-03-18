@@ -11,6 +11,6 @@ fec %>%
 
 fec %>%
   etl_extract(years = 2016) %>%
-#  etl_transform(year = 2016) %>%
+  etl_transform(year = 2016) %>%
   etl_load(years = 2016)
 

@@ -4,7 +4,7 @@
 \name{fec_vars}
 \alias{fec_vars}
 \title{FEC variables}
-\format{An object of class \code{tbl_df} (inherits from \code{tbl}, \code{data.frame}) with 111 rows and 9 columns.}
+\format{An object of class \code{tbl_df} (inherits from \code{tbl}, \code{data.frame}) with 126 rows and 9 columns.}
 \usage{
 fec_vars
 }

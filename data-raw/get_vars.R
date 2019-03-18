@@ -11,6 +11,7 @@ url_base <- "https://classic.fec.gov/finance/disclosure/metadata/DataDictionary"
 
 pages <- paste0(url_base, 
                 c("ContributionstoCandidates.shtml",
+                  "CandidateMaster.shtml",
                   "CommitteeMaster.shtml", 
                   "CandCmteLinkage.shtml",
                   "CommitteetoCommittee.shtml",
@@ -33,6 +34,7 @@ get_vars <- function(url) {
            var_name = tolower(var_name),
            precision = readr::parse_number(data_type),
            data_type = gsub("VARCHAR2", "VARCHAR", data_type),
+           data_type = gsub("VVARCHAR", "VARCHAR", data_type),
            data_type = ifelse(grepl(" or VARCHAR\\(18\\)", data_type),
                               "VARCHAR(18)", data_type),
            data_type = ifelse(grepl("NUMBER \\([0-9]+\\,[0-9]+\\)", data_type),
@@ -43,8 +45,17 @@ get_vars <- function(url) {
            data_type = ifelse(data_type == "", "TEXT", data_type),
            data_type = ifelse(data_type == "INT" & precision < 5, "SMALLINT", data_type),
            sql = paste0(data_type, 
-                        ifelse(allows_null == "Y", "", " NOT NULL"))
-           )
+                        ifelse(allows_null == "Y", "", " NOT NULL")),
+           table = case_when(
+             grepl("CandCmteLinkage", table) ~ "cand_com_link",
+             grepl("CommitteeMaster", table) ~ "committees",
+             grepl("CandidateMaster", table) ~ "candidates",
+             grepl("ContributionsbyIndividuals", table) ~ "contrib_indiv_to_com",
+             grepl("CommitteetoCommittee", table) ~ "contrib_com_to_com",
+             grepl("ContributionstoCandidates", table) ~ "contrib_com_to_cand",
+             grepl("OperatingExpenditures", table) ~ "expenditures",
+             TRUE ~ "null"
+           ))
   return(vars)
 }
 
@@ -74,7 +85,26 @@ sql <- fec_vars %>%
   lapply(unlist) %>%
   unlist() %>%
   paste0(";\n") %>%
-  unlist() %>%
+  unlist()
+
+
+sql <- sql %>%
+  append("DROP TABLE IF EXISTS `house_elections`;\n") %>%
+  append(sqlCreateTable(ANSI(), "house_elections", fields = c(
+    cand_id = "varchar(9) NOT NULL default ''",
+    state = "varchar(2) NOT NULL default ''",
+    district = "varchar(25) NOT NULL default ''",
+    incumbent = "varchar(5) NOT NULL default ''",
+    candidate_name = "varchar(255) NOT NULL default ''",
+    party = "varchar(1) NOT NULL default ''",
+    primary_votes = "int NOT NULL default 0",
+    runoff_votes = "int NOT NULL default 0",
+    general_votes = "int NOT NULL default 0",
+    ge_winner = "varchar(1) NOT NULL default ''",
+    election_cycle = "smallint(4) DEFAULT NULL"
+  ), row.names = FALSE)) %>%
+  append(";") %>%
   gsub('"', '`', x = .)
+
 
 cat(sql, file = "inst/sql/init.sql")

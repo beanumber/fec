@@ -44,6 +44,7 @@ etl_load.etl_fec <- function(obj, years = 2014, ...) {
 
 #' @rdname etl_extract.etl_fec
 #' @inheritParams etl::etl_init
+#' @importFrom dplyr db_create_index
 #' @export
 
 etl_init.etl_fec <- function(obj, script = NULL, 
@@ -53,7 +54,24 @@ etl_init.etl_fec <- function(obj, script = NULL,
   NextMethod(ext = "sql")
   
   # add indexes
-  
+  dplyr::db_create_index(obj$con, "candidates", "cand_id")
+  dplyr::db_create_index(obj$con, "committees", "cmte_id")
+  dplyr::db_create_index(obj$con, "committees", "cand_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_com", "tran_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_com", "cmte_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_com", "other_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_cand", "tran_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_cand", "cmte_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_cand", "cand_id")
+  dplyr::db_create_index(obj$con, "contrib_com_to_cand", "other_id")
+  dplyr::db_create_index(obj$con, "contrib_indiv_to_com", "tran_id")
+  dplyr::db_create_index(obj$con, "contrib_indiv_to_com", "cmte_id")
+  dplyr::db_create_index(obj$con, "contrib_indiv_to_com", "other_id")
+  dplyr::db_create_index(obj$con, "cand_com_link", "cand_id")
+  dplyr::db_create_index(obj$con, "cand_com_link", "cmte_id")
+  dplyr::db_create_index(obj$con, "expenditures", "tran_id")
+  dplyr::db_create_index(obj$con, "expenditures", "cmte_id")
+  dplyr::db_create_index(obj$con, "house_elections", "cand_id")
   invisible(obj)
 }
 
